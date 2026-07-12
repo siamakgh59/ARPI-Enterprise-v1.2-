@@ -2,6 +2,7 @@ import statistics
 import yfinance as yf
 import pandas as pd
 
+
 class ProviderResponse:
 
     def __init__(
@@ -19,7 +20,20 @@ class ProviderResponse:
         self.success = success
 
 
-class YahooProvider:
+class BaseProvider:
+
+    name = "Base"
+
+    def get_price(self, symbol):
+
+        return ProviderResponse(
+            self.name,
+            symbol,
+            success=False
+        )
+
+
+class YahooProvider(BaseProvider):
 
     name = "Yahoo Finance"
 
@@ -35,11 +49,13 @@ class YahooProvider:
             )
 
             if data.empty:
+
                 return ProviderResponse(
                     self.name,
                     symbol,
                     success=False
                 )
+
 
             last_price = float(
                 data["Close"].iloc[-1]
@@ -49,13 +65,17 @@ class YahooProvider:
                 data["Close"].iloc[0]
             )
 
+
             change = 0
 
             if first_price != 0:
+
                 change = (
                     (last_price - first_price)
-                    / first_price
+                    /
+                    first_price
                 ) * 100
+
 
             return ProviderResponse(
                 self.name,
@@ -65,6 +85,7 @@ class YahooProvider:
                 True
             )
 
+
         except Exception:
 
             return ProviderResponse(
@@ -72,23 +93,26 @@ class YahooProvider:
                 symbol,
                 success=False
             )
-class StooqProvider:
+
+
+class StooqProvider(BaseProvider):
 
     name = "Stooq"
+
+    symbols = {
+
+        "GC=F": "gc.f",
+        "SI=F": "si.f",
+        "DX-Y.NYB": "dxy"
+
+    }
+
 
     def get_price(self, symbol):
 
         try:
 
-            mapping = {
-
-                "GC=F": "gc.f",
-                "SI=F": "si.f",
-                "DX-Y.NYB": "dxy"
-
-            }
-
-            if symbol not in mapping:
+            if symbol not in self.symbols:
 
                 return ProviderResponse(
                     self.name,
@@ -100,7 +124,7 @@ class StooqProvider:
             url = (
                 "https://stooq.com/q/d/l/"
                 "?s="
-                + mapping[symbol]
+                + self.symbols[symbol]
                 + "&i=d"
             )
 
@@ -125,7 +149,7 @@ class StooqProvider:
             return ProviderResponse(
                 self.name,
                 symbol,
-                price,
+                round(price, 4),
                 0,
                 True
             )
@@ -138,10 +162,9 @@ class StooqProvider:
                 symbol,
                 success=False
             )
+            class SymbolResolver:
 
-class SymbolResolver:
-
-    symbols = {
+    assets = {
 
         "gold": [
             "GC=F",
@@ -192,27 +215,60 @@ class MarketDataManager:
     def __init__(self):
 
         self.providers = [
-    YahooProvider(),
-    StooqProvider()
-]
+
+            YahooProvider(),
+            StooqProvider()
+
+        ]
+
+
+    def calculate_confidence(self, responses):
+
+        unique_providers = len(
+            set(
+                r.provider
+                for r in responses
+            )
+        )
+
+
+        if unique_providers == 1:
+
+            return 70
+
+
+        elif unique_providers == 2:
+
+            return 85
+
+
+        else:
+
+            return 95
+
 
 
     def get_asset_price(self, asset):
 
-        candidates = SymbolResolver.symbols[asset]
+        symbols = SymbolResolver.assets[asset]
 
         responses = []
 
 
-        for symbol in candidates:
+        for symbol in symbols:
 
             for provider in self.providers:
 
                 result = provider.get_price(symbol)
 
-                if result.success and result.price > 0:
+
+                if (
+                    result.success
+                    and result.price > 0
+                ):
 
                     responses.append(result)
+
 
 
         if not responses:
@@ -227,76 +283,78 @@ class MarketDataManager:
             }
 
 
+
         prices = [
-            r.price for r in responses
+
+            r.price
+
+            for r in responses
+
         ]
 
 
-        unique_providers = len(
-    set(
-        r.provider
-        for r in responses
-    )
-)
-
-
-if unique_providers == 1:
-
-    confidence = 70
-
-elif unique_providers == 2:
-
-    confidence = 85
-
-else:
-
-    confidence = 95
-
-
-final_price = round(
-    statistics.median(prices),
-    4
-)
+        final_price = round(
+            statistics.median(prices),
+            4
+        )
 
 
         avg_change = round(
+
             sum(
                 r.change
                 for r in responses
             )
             /
             len(responses),
+
             2
+
+        )
+
+
+        confidence = self.calculate_confidence(
+            responses
+        )
+
+
+        providers = sorted(
+            set(
+                r.provider
+                for r in responses
+            )
+        )
+
+
+        symbols = sorted(
+            set(
+                r.symbol
+                for r in responses
+            )
         )
 
 
         return {
 
             "price": final_price,
-            "change": avg_change,
-            "confidence": confidence,
-            "providers": [
-                r.provider
-                for r in responses
-            ],
 
-            "symbols": [
-                r.symbol
-                for r in responses
-            ]
+            "change": avg_change,
+
+            "confidence": confidence,
+
+            "providers": providers,
+
+            "symbols": symbols
 
         }
-
-
-
-def get_best_market_data():
+        def get_best_market_data():
 
     manager = MarketDataManager()
 
     result = {}
 
 
-    for asset in SymbolResolver.symbols:
+    for asset in SymbolResolver.assets:
 
         result[asset] = (
             manager
