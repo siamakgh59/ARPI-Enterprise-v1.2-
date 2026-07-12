@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .data.yahoo import get_market_snapshot
+from .data.providers import get_best_market_data
 
 market_router = APIRouter(
     prefix="/market",
@@ -19,7 +19,7 @@ def market_home():
 
 @market_router.get("/live")
 def market_live():
-    data = get_market_snapshot()
+data = get_best_market_data()
 
     return {
         "module": "Market",
