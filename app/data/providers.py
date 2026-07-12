@@ -1,7 +1,7 @@
 import statistics
 import yfinance as yf
 import pandas as pd
-
+print("ARPI PROVIDERS ENGINE v2 LOADED")
 
 class ProviderResponse:
 
