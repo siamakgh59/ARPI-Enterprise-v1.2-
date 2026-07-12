@@ -19,7 +19,8 @@ def market_home():
 
 @market_router.get("/live")
 def market_live():
-data = get_best_market_data()
+
+    data = get_best_market_data()
 
     return {
         "module": "Market",
