@@ -232,19 +232,31 @@ class MarketDataManager:
         ]
 
 
-        if len(prices) == 1:
+        unique_providers = len(
+    set(
+        r.provider
+        for r in responses
+    )
+)
 
-            final_price = prices[0]
-            confidence = 70
 
-        else:
+if unique_providers == 1:
 
-            final_price = round(
-                statistics.median(prices),
-                4
-            )
+    confidence = 70
 
-            confidence = 90
+elif unique_providers == 2:
+
+    confidence = 85
+
+else:
+
+    confidence = 95
+
+
+final_price = round(
+    statistics.median(prices),
+    4
+)
 
 
         avg_change = round(
