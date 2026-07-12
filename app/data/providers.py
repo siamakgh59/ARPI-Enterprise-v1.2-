@@ -80,12 +80,16 @@ class SymbolResolver:
 
         "gold": [
             "GC=F",
-            "XAUUSD=X"
+            "XAUUSD=X",
+            "GOLD",
+            "GLD",
+            "IAU"
         ],
 
         "silver": [
             "SI=F",
-            "XAGUSD=X"
+            "XAGUSD=X",
+            "SLV"
         ],
 
         "oil_wti": [
@@ -100,7 +104,8 @@ class SymbolResolver:
 
         "usd_index": [
             "DX-Y.NYB",
-            "DX=F"
+            "DX=F",
+            "UUP"
         ],
 
         "eurusd": [
