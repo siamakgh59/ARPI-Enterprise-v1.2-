@@ -1,25 +1,33 @@
 from fastapi import APIRouter
 
-market_router = APIRouter(prefix="/market", tags=["Market"])
+from .data.yahoo import get_market_snapshot
 
 
-@market_router.get("")
-async def market_home():
+router = APIRouter(
+    prefix="/market",
+    tags=["Market"]
+)
+
+
+@router.get("")
+def market_home():
+
     return {
         "module": "Market",
         "status": "online",
-        "version": "1.2.0"
+        "version": "1.3.0",
+        "message": "ARPI Live Market Engine"
     }
 
 
-@market_router.get("/live")
-async def market_live():
+@router.get("/live")
+def market_live():
+
+    data = get_market_snapshot()
+
     return {
+        "module": "Market",
         "status": "success",
-        "data": {
-            "gold": "coming soon",
-            "usd": "coming soon",
-            "oil": "coming soon",
-            "vix": "coming soon"
-        }
+        "version": "1.3.0",
+        "data": data
     }
