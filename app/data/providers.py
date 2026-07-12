@@ -82,13 +82,11 @@ class StooqProvider:
 
             mapping = {
 
-                mapping = {
+                "GC=F": "gc.f",
+                "SI=F": "si.f",
+                "DX-Y.NYB": "dxy"
 
-    "GC=F": "gc.f",
-    "SI=F": "si.f",
-    "DX-Y.NYB": "dxy"
-
-}
+            }
 
             if symbol not in mapping:
 
@@ -107,10 +105,7 @@ class StooqProvider:
             )
 
 
-data = pd.read_csv(
-    url,
-    timeout=10
-)
+            data = pd.read_csv(url)
 
 
             if data.empty:
