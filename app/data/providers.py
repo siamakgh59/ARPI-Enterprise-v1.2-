@@ -1,6 +1,6 @@
 import statistics
 import yfinance as yf
-
+import pandas as pd
 
 class ProviderResponse:
 
@@ -72,7 +72,72 @@ class YahooProvider:
                 symbol,
                 success=False
             )
+class StooqProvider:
 
+    name = "Stooq"
+
+    def get_price(self, symbol):
+
+        try:
+
+            mapping = {
+
+                "GC=F": "gold",
+                "SI=F": "silver",
+                "DX-Y.NYB": "usd"
+
+            }
+
+            if symbol not in mapping:
+
+                return ProviderResponse(
+                    self.name,
+                    symbol,
+                    success=False
+                )
+
+
+            url = (
+                "https://stooq.com/q/d/l/"
+                "?s="
+                + mapping[symbol]
+                + "&i=d"
+            )
+
+
+            data = pd.read_csv(url)
+
+
+            if data.empty:
+
+                return ProviderResponse(
+                    self.name,
+                    symbol,
+                    success=False
+                )
+
+
+            price = float(
+                data["Close"].iloc[-1]
+            )
+
+
+            return ProviderResponse(
+                self.name,
+                symbol,
+                price,
+                0,
+                True
+            )
+
+
+        except Exception:
+
+            return ProviderResponse(
+                self.name,
+                symbol,
+                success=False
+            )
 
 class SymbolResolver:
 
@@ -127,8 +192,9 @@ class MarketDataManager:
     def __init__(self):
 
         self.providers = [
-            YahooProvider()
-        ]
+    YahooProvider(),
+    StooqProvider()
+]
 
 
     def get_asset_price(self, asset):
