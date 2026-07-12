@@ -1,17 +1,14 @@
 from fastapi import APIRouter
-
 from .data.yahoo import get_market_snapshot
 
-
-router = APIRouter(
+market_router = APIRouter(
     prefix="/market",
     tags=["Market"]
 )
 
 
-@router.get("")
+@market_router.get("")
 def market_home():
-
     return {
         "module": "Market",
         "status": "online",
@@ -20,9 +17,8 @@ def market_home():
     }
 
 
-@router.get("/live")
+@market_router.get("/live")
 def market_live():
-
     data = get_market_snapshot()
 
     return {
