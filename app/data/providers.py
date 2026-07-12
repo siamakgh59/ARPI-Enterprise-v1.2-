@@ -82,11 +82,13 @@ class StooqProvider:
 
             mapping = {
 
-                "GC=F": "gold",
-                "SI=F": "silver",
-                "DX-Y.NYB": "usd"
+                mapping = {
 
-            }
+    "GC=F": "gc.f",
+    "SI=F": "si.f",
+    "DX-Y.NYB": "dxy"
+
+}
 
             if symbol not in mapping:
 
@@ -105,7 +107,10 @@ class StooqProvider:
             )
 
 
-            data = pd.read_csv(url)
+data = pd.read_csv(
+    url,
+    timeout=10
+)
 
 
             if data.empty:
