@@ -1,4 +1,4 @@
-import statistics
+
 import yfinance as yf
 import pandas as pd
 
@@ -167,50 +167,38 @@ class StooqProvider(BaseProvider):
 
 class SymbolResolver:
 
-
     assets = {
 
         "gold": [
             "GC=F",
-            "XAUUSD=X",
-            "GOLD",
-            "GLD",
-            "IAU"
+            "XAUUSD=X"
         ],
-
 
         "silver": [
             "SI=F",
-            "XAGUSD=X",
-            "SLV"
+            "XAGUSD=X"
         ],
-
 
         "oil_wti": [
             "CL=F"
         ],
 
-
         "oil_brent": [
             "BZ=F"
         ],
-
 
         "usd_index": [
             "DX=F",
             "DX-Y.NYB"
         ],
 
-
         "eurusd": [
             "EURUSD=X"
         ],
 
-
         "vix": [
             "^VIX"
         ],
-
 
         "bitcoin": [
             "BTC-USD"
@@ -265,41 +253,55 @@ class MarketDataManager:
 
     def get_asset_price(self, asset):
 
-        symbols = SymbolResolver.assets.get(
-            asset,
-            []
-        )
+    symbols = SymbolResolver.assets.get(asset, [])
 
+    for symbol_index, symbol in enumerate(symbols):
 
-        responses = []
+        for provider in self.providers:
 
+            result = provider.get_price(symbol)
 
-        for symbol in symbols:
+            if result.success and result.price > 0:
 
-            for provider in self.providers:
+                if symbol_index == 0:
 
-                result = provider.get_price(symbol)
+                    confidence = 90
 
+                elif symbol_index == 1:
 
-                if (
-                    result.success
-                    and result.price > 0
-                ):
+                    confidence = 80
 
-                    responses.append(result)
+                else:
 
+                    confidence = 70
 
+                return {
 
-        if not responses:
+                    "price": result.price,
 
-            return {
+                    "change": result.change,
 
-                "price": 0,
-                "change": 0,
-                "confidence": 0,
-                "provider": "No Data"
+                    "confidence": confidence,
 
-            }
+                    "provider": result.provider,
+
+                    "symbol": result.symbol
+
+                }
+
+    return {
+
+        "price": 0,
+
+        "change": 0,
+
+        "confidence": 0,
+
+        "provider": "No Data",
+
+        "symbol": ""
+
+    }
 
 
 
