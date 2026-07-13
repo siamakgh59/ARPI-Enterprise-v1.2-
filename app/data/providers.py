@@ -1,7 +1,9 @@
 import statistics
 import yfinance as yf
 import pandas as pd
+
 print("ARPI PROVIDERS ENGINE v2 LOADED")
+
 
 class ProviderResponse:
 
@@ -49,13 +51,11 @@ class YahooProvider(BaseProvider):
             )
 
             if data.empty:
-
                 return ProviderResponse(
                     self.name,
                     symbol,
                     success=False
                 )
-
 
             last_price = float(
                 data["Close"].iloc[-1]
@@ -64,7 +64,6 @@ class YahooProvider(BaseProvider):
             first_price = float(
                 data["Close"].iloc[0]
             )
-
 
             change = 0
 
@@ -98,6 +97,7 @@ class YahooProvider(BaseProvider):
 class StooqProvider(BaseProvider):
 
     name = "Stooq"
+
 
     symbols = {
 
@@ -162,7 +162,11 @@ class StooqProvider(BaseProvider):
                 symbol,
                 success=False
             )
-            class SymbolResolver:
+
+
+
+class SymbolResolver:
+
 
     assets = {
 
@@ -174,43 +178,50 @@ class StooqProvider(BaseProvider):
             "IAU"
         ],
 
+
         "silver": [
             "SI=F",
             "XAGUSD=X",
             "SLV"
         ],
 
+
         "oil_wti": [
-            "CL=F",
-            "USO"
+            "CL=F"
         ],
+
 
         "oil_brent": [
-            "BZ=F",
-            "BNO"
+            "BZ=F"
         ],
 
+
         "usd_index": [
-            "DX-Y.NYB",
             "DX=F",
-            "UUP"
+            "DX-Y.NYB"
         ],
+
 
         "eurusd": [
             "EURUSD=X"
         ],
 
+
         "vix": [
             "^VIX"
         ],
 
+
         "bitcoin": [
             "BTC-USD"
         ]
+
     }
 
 
+
 class MarketDataManager:
+
 
     def __init__(self):
 
@@ -220,6 +231,7 @@ class MarketDataManager:
             StooqProvider()
 
         ]
+
 
 
     def calculate_confidence(self, responses):
@@ -232,9 +244,9 @@ class MarketDataManager:
         )
 
 
-        if unique_providers == 1:
+        if unique_providers >= 3:
 
-            return 70
+            return 95
 
 
         elif unique_providers == 2:
@@ -242,15 +254,22 @@ class MarketDataManager:
             return 85
 
 
-        else:
+        elif unique_providers == 1:
 
-            return 95
+            return 70
+
+
+        return 0
 
 
 
     def get_asset_price(self, asset):
 
-        symbols = SymbolResolver.assets[asset]
+        symbols = SymbolResolver.assets.get(
+            asset,
+            []
+        )
+
 
         responses = []
 
@@ -313,41 +332,35 @@ class MarketDataManager:
         )
 
 
-        confidence = self.calculate_confidence(
-            responses
-        )
-
-
-        providers = sorted(
-            set(
-                r.provider
-                for r in responses
-            )
-        )
-
-
-        symbols = sorted(
-            set(
-                r.symbol
-                for r in responses
-            )
-        )
-
-
         return {
 
             "price": final_price,
 
             "change": avg_change,
 
-            "confidence": confidence,
+            "confidence": self.calculate_confidence(
+                responses
+            ),
 
-            "providers": providers,
+            "providers": sorted(
+                set(
+                    r.provider
+                    for r in responses
+                )
+            ),
 
-            "symbols": symbols
+            "symbols": sorted(
+                set(
+                    r.symbol
+                    for r in responses
+                )
+            )
 
         }
-        def get_best_market_data():
+
+
+
+def get_best_market_data():
 
     manager = MarketDataManager()
 
@@ -363,4 +376,3 @@ class MarketDataManager:
 
 
     return result
-    # ARPI PROVIDERS ENGINE v2 FINAL
