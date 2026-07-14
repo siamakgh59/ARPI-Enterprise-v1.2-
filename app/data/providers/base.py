@@ -10,3 +10,4 @@ class BaseProvider:
             symbol=symbol,
             success=False,
         )
+
