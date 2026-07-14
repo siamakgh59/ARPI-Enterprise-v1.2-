@@ -1,10 +1,6 @@
-from .technical import analyzeanalyze_technical(
+from .technical import analyze_technical
 
-    price,
 
-    change
-
-)
 def calculate_confidence(responses):
 
     valid = [
@@ -49,20 +45,23 @@ def analyze_asset(name, responses):
     elif abs(change) > 1:
         risk = "MEDIUM"
 
+    technical = analyze_technical(
+        price,
+        change
+    )
+
     return {
-    "asset": name,
-    "price": price,
-    "change": change,
-    "signal": signal,
-    "confidence": confidence,
-    "risk": risk,
-    "providers": [
-        r.get("provider")
-        for r in responses
-    ],
-    "technical": technical
-}responses
-        ]
+        "asset": name,
+        "price": price,
+        "change": change,
+        "signal": signal,
+        "confidence": confidence,
+        "risk": risk,
+        "providers": [
+            r.get("provider")
+            for r in responses
+        ],
+        "technical": technical
     }
 
 
