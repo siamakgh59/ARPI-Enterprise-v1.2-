@@ -31,18 +31,28 @@ class YahooFinanceProvider(BaseProvider):
 
             last_price = float(close.iloc[-1])
 
-            if len(close) > 1:
-                previous = float(close.iloc[-2])
-                change = ((last_price - previous) / previous) * 100
-            else:
-                change = 0
+            previous = (
+                float(close.iloc[-2])
+                if len(close) > 1
+                else last_price
+            )
+
+            change = (
+                ((last_price - previous) / previous) * 100
+                if previous
+                else 0
+            )
 
             return ProviderResponse(
                 provider=self.name,
                 symbol=symbol,
                 price=round(last_price, 4),
                 change=round(change, 2),
-                success=True
+                success=True,
+                history=[
+                    float(x)
+                    for x in close.tolist()
+                ]
             )
 
         except Exception as e:
@@ -58,5 +68,6 @@ class YahooFinanceProvider(BaseProvider):
                 symbol=symbol,
                 price=0,
                 change=0,
-                success=False
+                success=False,
+                history=[]
             )
