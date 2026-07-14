@@ -14,7 +14,7 @@ class YahooFinanceProvider(BaseProvider):
             ticker = yf.Ticker(symbol)
 
             data = ticker.history(
-                period="5d",
+                period="6mo",
                 interval="1d"
             )
 
@@ -24,7 +24,8 @@ class YahooFinanceProvider(BaseProvider):
                     symbol=symbol,
                     price=0,
                     change=0,
-                    success=False
+                    success=False,
+                    history=[]
                 )
 
             close = data["Close"]
@@ -43,16 +44,18 @@ class YahooFinanceProvider(BaseProvider):
                 else 0
             )
 
+            history = [
+                round(float(x), 4)
+                for x in close.tolist()
+            ]
+
             return ProviderResponse(
                 provider=self.name,
                 symbol=symbol,
                 price=round(last_price, 4),
                 change=round(change, 2),
                 success=True,
-                history=[
-                    float(x)
-                    for x in close.tolist()
-                ]
+                history=history
             )
 
         except Exception as e:
