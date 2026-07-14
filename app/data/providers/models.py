@@ -1,4 +1,5 @@
 class ProviderResponse:
+
     def __init__(
         self,
         provider: str,
@@ -12,3 +13,14 @@ class ProviderResponse:
         self.price = price
         self.change = change
         self.success = success
+
+    def to_dict(self):
+
+        return {
+            "provider": self.provider,
+            "symbol": self.symbol,
+            "price": self.price,
+            "change": self.change,
+            "success": self.success
+        }
+
