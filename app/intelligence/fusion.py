@@ -1,3 +1,4 @@
+from .technical import analyze_technical
 def calculate_confidence(responses):
 
     valid = [
