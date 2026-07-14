@@ -1,5 +1,4 @@
 from .registry import get_providers
-from .yahoo import YahooFinanceProvider
 
 
 def get_best_market_data():
@@ -24,7 +23,6 @@ def get_best_market_data():
         responses = []
 
         for provider in providers:
-
             response = provider.get_price(symbol)
 
             responses.append(
