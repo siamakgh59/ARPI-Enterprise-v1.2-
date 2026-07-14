@@ -1,6 +1,7 @@
 import yfinance as yf
 
-from . import MarketProvider, ProviderResponse
+from .base import MarketProvider
+from .models import ProviderResponse
 
 
 class YahooFinanceProvider(MarketProvider):
