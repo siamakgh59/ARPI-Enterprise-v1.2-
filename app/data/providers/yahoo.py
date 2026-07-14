@@ -1,10 +1,10 @@
 import yfinance as yf
 
-from .base import MarketProvider
+from .base import BaseProvider
 from .models import ProviderResponse
 
 
-class YahooFinanceProvider(MarketProvider):
+class YahooFinanceProvider(BaseProvider):
 
     name = "Yahoo Finance"
 
