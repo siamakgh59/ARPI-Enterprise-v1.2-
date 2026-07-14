@@ -8,11 +8,9 @@ class YahooFinanceProvider(BaseProvider):
 
     name = "Yahoo Finance"
 
-
     def get_price(self, symbol: str):
 
         try:
-
             ticker = yf.Ticker(symbol)
 
             data = ticker.history(
@@ -20,20 +18,7 @@ class YahooFinanceProvider(BaseProvider):
                 interval="1d"
             )
 
-            print(
-                "YAHOO DATA",
-                symbol,
-                data.shape
-            )
-
-
             if data.empty:
-
-                print(
-                    "EMPTY DATA:",
-                    symbol
-                )
-
                 return ProviderResponse(
                     provider=self.name,
                     symbol=symbol,
@@ -42,38 +27,30 @@ class YahooFinanceProvider(BaseProvider):
                     success=False
                 )
 
+            close = data["Close"]
 
-            last_price = float(
-                data["Close"].iloc[-1]
-            )
+            last_price = float(close.iloc[-1])
 
-            previous_price = float(
-                data["Close"].iloc[-2]
-            )
-
-
-            change = (
-                (last_price - previous_price)
-                /
-                previous_price
-            ) * 100
-
+            if len(close) > 1:
+                previous = float(close.iloc[-2])
+                change = ((last_price - previous) / previous) * 100
+            else:
+                change = 0
 
             return ProviderResponse(
                 provider=self.name,
                 symbol=symbol,
-                price=round(last_price,4),
-                change=round(change,2),
+                price=round(last_price, 4),
+                change=round(change, 2),
                 success=True
             )
-
 
         except Exception as e:
 
             print(
-                "YAHOO ERROR:",
+                "Yahoo Error:",
                 symbol,
-                repr(e)
+                e
             )
 
             return ProviderResponse(
