@@ -59,10 +59,10 @@ class YahooFinanceProvider(BaseProvider):
             )
 
 
-        except Exception as e:
+   except Exception as e:
 
     print(
-        "Yahoo Error:",
+        "YAHOO ERROR:",
         symbol,
         str(e)
     )
@@ -73,5 +73,4 @@ class YahooFinanceProvider(BaseProvider):
         price=0,
         change=0,
         success=False
-    )False
-            )
+    )
