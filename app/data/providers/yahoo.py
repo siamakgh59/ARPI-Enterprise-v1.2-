@@ -40,11 +40,12 @@ class YahooFinanceProvider(BaseProvider):
             ) * 100 if first_price else 0
 
             return ProviderResponse(
-                symbol=symbol,
-                price=round(last_price, 4),
-                change=round(change, 2),
-                provider=self.name
-            )
+    symbol=symbol,
+    price=round(last_price, 4),
+    change=round(change, 2),
+    provider=self.name,
+    success=True
+)
 
         except Exception:
 
