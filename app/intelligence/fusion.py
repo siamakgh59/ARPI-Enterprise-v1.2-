@@ -46,7 +46,7 @@ def analyze_asset(name, responses):
         risk = "MEDIUM"
 
     technical = analyze_technical(
-    responsry", [])
+    responses[0].get("history", [])
 )
 
     return {
