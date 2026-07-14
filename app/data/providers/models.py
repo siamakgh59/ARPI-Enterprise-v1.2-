@@ -7,12 +7,14 @@ class ProviderResponse:
         price: float = 0.0,
         change: float = 0.0,
         success: bool = False,
+        history: list = None,
     ):
         self.provider = provider
         self.symbol = symbol
         self.price = price
         self.change = change
         self.success = success
+        self.history = history or []
 
     def to_dict(self):
 
@@ -21,6 +23,7 @@ class ProviderResponse:
             "symbol": self.symbol,
             "price": self.price,
             "change": self.change,
-            "success": self.success
+            "success": self.success,
+            "history": self.history
         }
 
