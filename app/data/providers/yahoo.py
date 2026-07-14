@@ -16,12 +16,23 @@ class YahooFinanceProvider(BaseProvider):
             ticker = yf.Ticker(symbol)
 
             data = ticker.history(
-                period="3mo",
+                period="5d",
                 interval="1d"
+            )
+
+            print(
+                "YAHOO DATA",
+                symbol,
+                data.shape
             )
 
 
             if data.empty:
+
+                print(
+                    "EMPTY DATA:",
+                    symbol
+                )
 
                 return ProviderResponse(
                     provider=self.name,
@@ -36,16 +47,15 @@ class YahooFinanceProvider(BaseProvider):
                 data["Close"].iloc[-1]
             )
 
-
-            first_price = float(
+            previous_price = float(
                 data["Close"].iloc[-2]
             )
 
 
             change = (
-                (last_price-first_price)
+                (last_price - previous_price)
                 /
-                first_price
+                previous_price
             ) * 100
 
 
@@ -54,23 +64,22 @@ class YahooFinanceProvider(BaseProvider):
                 symbol=symbol,
                 price=round(last_price,4),
                 change=round(change,2),
-                success=True,
-                history=data["Close"].tolist()
+                success=True
             )
 
 
-   except Exception as e:
+        except Exception as e:
 
-    print(
-        "YAHOO ERROR:",
-        symbol,
-        str(e)
-    )
+            print(
+                "YAHOO ERROR:",
+                symbol,
+                repr(e)
+            )
 
-    return ProviderResponse(
-        provider=self.name,
-        symbol=symbol,
-        price=0,
-        change=0,
-        success=False
-    )
+            return ProviderResponse(
+                provider=self.name,
+                symbol=symbol,
+                price=0,
+                change=0,
+                success=False
+            )
