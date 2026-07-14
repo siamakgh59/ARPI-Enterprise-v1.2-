@@ -38,10 +38,14 @@ def analyze_technical(prices):
 
     if not prices or len(prices) < 50:
 
-        return {
-            "technical_score": 50,
-            "technical_signal": "NO_DATA",
-            "trend": "UNKNOWN"
+    return {
+        "technical_score": 50,
+        "technical_signal": "NO_DATA",
+        "trend": "UNKNOWN",
+        "RSI14": 50,
+        "EMA20": 0,
+        "EMA50": 0
+    }UNKNOWN"
         }
 
 
