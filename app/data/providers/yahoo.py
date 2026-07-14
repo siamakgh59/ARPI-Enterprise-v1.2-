@@ -59,13 +59,19 @@ class YahooFinanceProvider(BaseProvider):
             )
 
 
-        except Exception:
+        except Exception as e:
 
+    print(
+        "Yahoo Error:",
+        symbol,
+        str(e)
+    )
 
-            return ProviderResponse(
-                provider=self.name,
-                symbol=symbol,
-                price=0,
-                change=0,
-                success=False
+    return ProviderResponse(
+        provider=self.name,
+        symbol=symbol,
+        price=0,
+        change=0,
+        success=False
+    )False
             )
