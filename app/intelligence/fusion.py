@@ -24,7 +24,6 @@ def analyze_asset(name, responses):
 
     technical = analyze_technical(
         history,
-        price
     )
 
     score = 0
