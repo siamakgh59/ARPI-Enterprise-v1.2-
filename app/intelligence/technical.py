@@ -2,6 +2,7 @@ import pandas as pd
 
 
 def calculate_rsi(prices, period=14):
+
     series = pd.Series(prices)
 
     delta = series.diff()
@@ -20,6 +21,7 @@ def calculate_rsi(prices, period=14):
 
 
 def calculate_ema(prices, period):
+
     series = pd.Series(prices)
 
     ema = series.ewm(
@@ -33,6 +35,7 @@ def calculate_ema(prices, period):
 def analyze_technical(prices):
 
     if not prices or len(prices) < 50:
+
         return {
             "technical_score": 50,
             "technical_signal": "NO_DATA",
@@ -42,40 +45,63 @@ def analyze_technical(prices):
             "EMA50": 0
         }
 
-    rsi = calculate_rsi(prices, 14)
 
-    ema20 = calculate_ema(prices, 20)
+    rsi = calculate_rsi(
+        prices,
+        14
+    )
 
-    ema50 = calculate_ema(prices, 50)
+    ema20 = calculate_ema(
+        prices,
+        20
+    )
+
+    ema50 = calculate_ema(
+        prices,
+        50
+    )
+
 
     score = 50
 
+
     if rsi < 30:
         score += 20
+
     elif rsi > 70:
         score -= 20
+
 
     if ema20 > ema50:
         score += 20
         trend = "BULLISH"
+
     else:
         score -= 20
         trend = "BEARISH"
 
-    score = max(0, min(score, 100))
+
+    score = max(
+        0,
+        min(score,100)
+    )
+
 
     if score >= 70:
         signal = "BUY"
+
     elif score <= 30:
         signal = "SELL"
+
     else:
         signal = "HOLD"
+
 
     return {
         "technical_score": score,
         "technical_signal": signal,
         "trend": trend,
-        "RSI14": round(rsi, 2),
-        "EMA20": round(ema20, 2),
-        "EMA50": round(ema50, 2)
+        "RSI14": round(rsi,2),
+        "EMA20": round(ema20,2),
+        "EMA50": round(ema50,2)
     }
