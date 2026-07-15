@@ -23,7 +23,7 @@ def analyze_asset(name, responses):
     history = data.get("history", [])
 
     technical = analyze_technical(
-        history,
+        history
     )
 
     score = 0
