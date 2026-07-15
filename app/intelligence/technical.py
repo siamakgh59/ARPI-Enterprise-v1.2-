@@ -39,7 +39,7 @@ def analyze_technical(prices):
         return {
             "technical_score": 50,
             "technical_signal": "NO_DATA",
-            "trend": "UNKNOWN",
+            "trend": "NO_TREND",
             "RSI14": 50,
             "EMA20": 0,
             "EMA50": 0
