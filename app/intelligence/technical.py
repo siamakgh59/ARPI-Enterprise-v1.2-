@@ -35,7 +35,6 @@ def calculate_ema(prices, period):
 def analyze_technical(prices):
 
     if not prices or len(prices) < 50:
-
         return {
             "technical_score": 50,
             "technical_signal": "NO_DATA",
@@ -45,22 +44,11 @@ def analyze_technical(prices):
             "EMA50": 0
         }
 
+    rsi = calculate_rsi(prices, 14)
 
-    rsi = calculate_rsi(
-        prices,
-        14
-    )
+    ema20 = calculate_ema(prices, 20)
 
-    ema20 = calculate_ema(
-        prices,
-        20
-    )
-
-    ema50 = calculate_ema(
-        prices,
-        50
-    )
-
+    ema50 = calculate_ema(prices, 50)
 
     score = 50
 
@@ -81,10 +69,7 @@ def analyze_technical(prices):
         trend = "BEARISH"
 
 
-    score = max(
-        0,
-        min(score,100)
-    )
+    score = max(0, min(score, 100))
 
 
     if score >= 70:
@@ -101,7 +86,9 @@ def analyze_technical(prices):
         "technical_score": score,
         "technical_signal": signal,
         "trend": trend,
-        "RSI14": round(rsi,2),
-        "EMA20": round(ema20,2),
-        "EMA50": round(ema50,2)
+        "RSI14": round(rsi, 2),
+        "EMA20": round(ema20, 2),
+        "EMA50": round(ema50, 2)
     }
+
+
