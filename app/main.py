@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from app.api import api_router
 from app.dashboard.router import router as dashboard_router
 
-print("######## ARPI MAIN FILE LOADED ########")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,10 +22,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-print("### MAIN.PY NEW VERSION LOADED ###")
+
 app.include_router(api_router)
 app.include_router(dashboard_router)
-print("========== ARPI ROUTES v1.2 DASHBOARD TEST ==========")
-for route in app.routes:
-    print(route.path)
-print("================================")
