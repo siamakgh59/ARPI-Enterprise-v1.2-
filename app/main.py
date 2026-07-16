@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from app.api import api_router
 from app.dashboard.router import router as dashboard_router
 
+print("######## ARPI MAIN FILE LOADED ########")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
