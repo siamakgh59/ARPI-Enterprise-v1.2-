@@ -1,89 +1,203 @@
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
+import requests
 
 router = APIRouter(prefix="/dashboard")
+
+
+MARKET_URL = "http://127.0.0.1:8080/market/live"
 
 
 @router.get("/", response_class=HTMLResponse)
 async def dashboard():
 
-    return """
+    try:
+        data = requests.get(MARKET_URL, timeout=10).json()
+        analysis = data.get("analysis", {})
+
+    except Exception:
+        analysis = {}
+
+
+    gold = analysis.get("gold", {})
+    silver = analysis.get("silver", {})
+    bitcoin = analysis.get("bitcoin", {})
+    usd = analysis.get("usd_index", {})
+
+
+    return f"""
     <!DOCTYPE html>
     <html>
+
     <head>
-        <title>ARPI Enterprise</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ARPI Enterprise Dashboard</title>
 
-        <style>
-        body{
-            font-family:Arial;
-            background:#111827;
-            color:white;
-            padding:20px;
-        }
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        .card{
-            background:#1f2937;
-            border-radius:15px;
-            padding:20px;
-            margin:15px 0;
-        }
+    <style>
 
-        .buy{
-            color:#22c55e;
-        }
+    body {{
+        font-family: Arial;
+        background:#111827;
+        color:white;
+        padding:20px;
+    }}
 
-        .sell{
-            color:#ef4444;
-        }
+    .grid {{
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+        gap:20px;
+    }}
 
-        .hold{
-            color:#eab308;
-        }
+    .card {{
+        background:#1f2937;
+        border-radius:18px;
+        padding:20px;
+    }}
 
-        </style>
+    .buy {{
+        color:#22c55e;
+    }}
+
+    .sell {{
+        color:#ef4444;
+    }}
+
+    .hold {{
+        color:#eab308;
+    }}
+
+    </style>
+
     </head>
+
 
     <body>
 
+
     <h1>ARPI Enterprise</h1>
 
-    <div class="card">
-    <h2>Market Status</h2>
-    <h3 class="buy">🟢 ACTIVE</h3>
-    </div>
+    <h3>AI Risk & Prediction Intelligence</h3>
+
+
+    <div class="grid">
 
 
     <div class="card">
-    <h2>AI Signals</h2>
+    <h2>Gold</h2>
 
-    <p>Gold : <span class="sell">SELL</span> | Confidence 60%</p>
-    <p>Silver : <span class="sell">SELL</span> | Confidence 60%</p>
-    <p>Oil Brent : <span class="sell">SELL</span> | Confidence 70%</p>
-    <p>USD Index : <span class="buy">BUY</span> | Confidence 60%</p>
+    <h3>
+    Price:
+    {gold.get("price","-")}
+    </h3>
 
-    </div>
-
-
-    <div class="card">
-    <h2>ARPI Decision Engine</h2>
     <p>
-    Multi Engine Analysis Active
+    Signal:
+    {gold.get("signal","-")}
     </p>
+
+    <p>
+    Confidence:
+    {gold.get("confidence","-")}%
+    </p>
+
+    </div>
+
+
+
+    <div class="card">
+
+    <h2>Silver</h2>
+
+    <h3>
+    Price:
+    {silver.get("price","-")}
+    </h3>
+
+    <p>
+    Signal:
+    {silver.get("signal","-")}
+    </p>
+
+    <p>
+    Confidence:
+    {silver.get("confidence","-")}%
+    </p>
+
+    </div>
+
+
+
+
+    <div class="card">
+
+    <h2>Bitcoin</h2>
+
+    <h3>
+    Price:
+    {bitcoin.get("price","-")}
+    </h3>
+
+    <p>
+    Signal:
+    {bitcoin.get("signal","-")}
+    </p>
+
+    <p>
+    Confidence:
+    {bitcoin.get("confidence","-")}%
+    </p>
+
+    </div>
+
+
+
+
+    <div class="card">
+
+    <h2>USD Index</h2>
+
+    <h3>
+    Price:
+    {usd.get("price","-")}
+    </h3>
+
+    <p>
+    Signal:
+    {usd.get("signal","-")}
+    </p>
+
+    </div>
+
+
     </div>
 
 
     </body>
+
     </html>
     """
+
+
+@router.get("/data")
+async def dashboard_data():
+
+    try:
+        return requests.get(MARKET_URL, timeout=10).json()
+
+    except Exception as e:
+
+        return {
+            "status":"error",
+            "message":str(e)
+        }
 
 
 @router.get("/summary")
 async def dashboard_summary():
 
     return {
-        "application": "ARPI Enterprise",
-        "dashboard": "summary",
-        "status": "active",
-        "version": "1.4.0"
+        "application":"ARPI Enterprise",
+        "dashboard":"active",
+        "version":"1.5.0"
     }
