@@ -1,189 +1,189 @@
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
-import requests
+
+from app.market import get_market_data
+
 
 router = APIRouter(prefix="/dashboard")
-
-
-MARKET_URL = "http://127.0.0.1:8080/market/live"
 
 
 @router.get("/", response_class=HTMLResponse)
 async def dashboard():
 
     try:
-        data = requests.get(MARKET_URL, timeout=10).json()
+        data = get_market_data()
         analysis = data.get("analysis", {})
 
     except Exception:
         analysis = {}
 
 
-    gold = analysis.get("gold", {})
-    silver = analysis.get("silver", {})
-    bitcoin = analysis.get("bitcoin", {})
-    usd = analysis.get("usd_index", {})
+    assets = [
+        "gold",
+        "silver",
+        "oil_wti",
+        "oil_brent",
+        "usd_index",
+        "eurusd",
+        "vix",
+        "bitcoin"
+    ]
+
+
+    cards = ""
+
+    for asset in assets:
+
+        item = analysis.get(asset, {})
+
+        signal = item.get("signal", "-")
+        confidence = item.get("confidence", "-")
+        risk = item.get("risk", "-")
+        price = item.get("price", "-")
+        trend = item.get("technical", {}).get("trend", "-")
+
+        css = signal.lower()
+
+
+        cards += f"""
+        <div class="card">
+
+        <h2>{asset.upper()}</h2>
+
+        <h3>
+        Price: {price}
+        </h3>
+
+        <p>
+        Signal:
+        <span class="{css}">
+        {signal}
+        </span>
+        </p>
+
+        <p>
+        Confidence:
+        {confidence}%
+        </p>
+
+        <p>
+        Risk:
+        {risk}
+        </p>
+
+        <p>
+        Trend:
+        {trend}
+        </p>
+
+        </div>
+        """
 
 
     return f"""
-    <!DOCTYPE html>
-    <html>
+<!DOCTYPE html>
 
-    <head>
-    <title>ARPI Enterprise Dashboard</title>
+<html>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+<head>
 
-    <style>
+<title>
+ARPI Enterprise Dashboard
+</title>
 
-    body {{
-        font-family: Arial;
-        background:#111827;
-        color:white;
-        padding:20px;
-    }}
-
-    .grid {{
-        display:grid;
-        grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-        gap:20px;
-    }}
-
-    .card {{
-        background:#1f2937;
-        border-radius:18px;
-        padding:20px;
-    }}
-
-    .buy {{
-        color:#22c55e;
-    }}
-
-    .sell {{
-        color:#ef4444;
-    }}
-
-    .hold {{
-        color:#eab308;
-    }}
-
-    </style>
-
-    </head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-    <body>
+<style>
+
+body {{
+
+font-family:Arial;
+background:#111827;
+color:white;
+padding:20px;
+
+}}
 
 
-    <h1>ARPI Enterprise</h1>
+.grid {{
 
-    <h3>AI Risk & Prediction Intelligence</h3>
+display:grid;
+grid-template-columns:
+repeat(auto-fit,minmax(250px,1fr));
 
+gap:20px;
 
-    <div class="grid">
-
-
-    <div class="card">
-    <h2>Gold</h2>
-
-    <h3>
-    Price:
-    {gold.get("price","-")}
-    </h3>
-
-    <p>
-    Signal:
-    {gold.get("signal","-")}
-    </p>
-
-    <p>
-    Confidence:
-    {gold.get("confidence","-")}%
-    </p>
-
-    </div>
+}}
 
 
+.card {{
 
-    <div class="card">
+background:#1f2937;
+border-radius:18px;
+padding:20px;
 
-    <h2>Silver</h2>
-
-    <h3>
-    Price:
-    {silver.get("price","-")}
-    </h3>
-
-    <p>
-    Signal:
-    {silver.get("signal","-")}
-    </p>
-
-    <p>
-    Confidence:
-    {silver.get("confidence","-")}%
-    </p>
-
-    </div>
+}}
 
 
+.buy {{
+
+color:#22c55e;
+
+}}
 
 
-    <div class="card">
+.sell {{
 
-    <h2>Bitcoin</h2>
+color:#ef4444;
 
-    <h3>
-    Price:
-    {bitcoin.get("price","-")}
-    </h3>
-
-    <p>
-    Signal:
-    {bitcoin.get("signal","-")}
-    </p>
-
-    <p>
-    Confidence:
-    {bitcoin.get("confidence","-")}%
-    </p>
-
-    </div>
+}}
 
 
+.hold {{
+
+color:#eab308;
+
+}}
+
+</style>
 
 
-    <div class="card">
-
-    <h2>USD Index</h2>
-
-    <h3>
-    Price:
-    {usd.get("price","-")}
-    </h3>
-
-    <p>
-    Signal:
-    {usd.get("signal","-")}
-    </p>
-
-    </div>
+</head>
 
 
-    </div>
+<body>
 
 
-    </body>
+<h1>
+ARPI Enterprise
+</h1>
 
-    </html>
-    """
+
+<h3>
+AI Risk & Prediction Intelligence
+</h3>
+
+
+<div class="grid">
+
+{cards}
+
+</div>
+
+
+</body>
+
+
+</html>
+"""
 
 
 @router.get("/data")
 async def dashboard_data():
 
     try:
-        return requests.get(MARKET_URL, timeout=10).json()
+        return get_market_data()
 
     except Exception as e:
 
@@ -193,11 +193,19 @@ async def dashboard_data():
         }
 
 
+
 @router.get("/summary")
 async def dashboard_summary():
 
     return {
-        "application":"ARPI Enterprise",
-        "dashboard":"active",
-        "version":"1.5.0"
+
+        "application":
+        "ARPI Enterprise",
+
+        "dashboard":
+        "active",
+
+        "version":
+        "1.6.0"
+
     }
