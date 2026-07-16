@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api import api_router
-
 from app.dashboard import router as dashboard_router
 
 
@@ -24,5 +23,4 @@ app = FastAPI(
 )
 
 app.include_router(api_router)
-
 app.include_router(dashboard_router)
