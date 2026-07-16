@@ -16,22 +16,5 @@ def dashboard_summary():
 
     signals = []
 
-    for asset, item in analysis.items():
-        signals.append({
-            "asset": asset,
-            "signal": item.get("signal"),
-            "confidence": item.get("confidence"),
-            "risk": item.get("risk")
-        })
-
-
-    return {
-        "application": "ARPI Enterprise",
-        "version": "1.4.0",
-
-        "market_status": "ACTIVE",
-
-        "top_signals": signals,
-
-        "total_assets": len(signals)
-    }
+    
+            "
