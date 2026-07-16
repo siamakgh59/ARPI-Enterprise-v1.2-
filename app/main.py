@@ -25,3 +25,7 @@ app = FastAPI(
 
 app.include_router(api_router)
 app.include_router(dashboard_router)
+print("========== ARPI ROUTES ==========")
+for route in app.routes:
+    print(route.path)
+print("================================")
