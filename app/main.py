@@ -9,7 +9,7 @@ from app.dashboard.router import router as dashboard_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("========================================")
-    print("ARPI Enterprise v1.2 Stable Starting...")
+    print("ARPI Enterprise v1.4 Stable Starting...")
     print("========================================")
     yield
     print("ARPI Enterprise Stopped")
