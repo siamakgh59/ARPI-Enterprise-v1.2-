@@ -3,10 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api import api_router
-from app.dashboard import router as dashboard_router
 from app.dashboard.router import router as dashboard_router
 
-app.include_router(dashboard_router)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,6 +21,7 @@ app = FastAPI(
     version="1.2.0",
     lifespan=lifespan,
 )
+
 
 app.include_router(api_router)
 app.include_router(dashboard_router)
