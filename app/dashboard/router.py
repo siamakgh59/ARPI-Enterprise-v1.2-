@@ -1,5 +1,8 @@
 from fastapi import APIRouter
+from datetime import datetime
+
 from app.market import market_live
+
 
 router = APIRouter(
     prefix="/dashboard",
@@ -16,22 +19,82 @@ def dashboard_summary():
 
     signals = []
 
+    confidence_values = []
+
+    risk_levels = []
+
     for asset, item in analysis.items():
+
+        confidence = item.get("confidence", 0)
+
         signals.append({
             "asset": asset,
             "signal": item.get("signal"),
-            "confidence": item.get("confidence"),
+            "confidence": confidence,
             "risk": item.get("risk")
         })
 
+        confidence_values.append(confidence)
+
+        if item.get("risk"):
+            risk_levels.append(item.get("risk"))
+
+
+    avg_confidence = (
+        sum(confidence_values) / len(confidence_values)
+        if confidence_values
+        else 0
+    )
+
+
+    risk_summary = {
+        "HIGH": risk_levels.count("HIGH"),
+        "MEDIUM": risk_levels.count("MEDIUM"),
+        "LOW": risk_levels.count("LOW")
+    }
+
 
     return {
+
         "application": "ARPI Enterprise",
+
         "version": "1.4.0",
 
-        "market_status": "ACTIVE",
+        "timestamp": datetime.utcnow().isoformat(),
 
-        "top_signals": signals,
 
-        "total_assets": len(signals)
+        "dashboard_status": "ACTIVE",
+
+
+        "arpi_score": {
+            "value": round(avg_confidence),
+            "status": "calculating"
+        },
+
+
+        "market": {
+            "status": "LIVE",
+            "engine": "ARPI Market Engine"
+        },
+
+
+        "risk_summary": risk_summary,
+
+
+        "assets": {
+            "total": len(signals),
+            "analyzed": signals
+        },
+
+
+        "decision_summary": {
+
+            "top_signals": signals[:5],
+
+            "overall_confidence": round(avg_confidence),
+
+            "recommendation": "HOLD"
+
+        }
+
     }
