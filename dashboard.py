@@ -6,12 +6,14 @@ router = APIRouter(prefix="/dashboard")
 
 @router.get("/", response_class=HTMLResponse)
 async def dashboard():
+
     return """
     <!DOCTYPE html>
     <html>
     <head>
         <title>ARPI Enterprise</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+
         <style>
         body{
             font-family:Arial;
@@ -19,15 +21,26 @@ async def dashboard():
             color:white;
             padding:20px;
         }
+
         .card{
             background:#1f2937;
             border-radius:15px;
             padding:20px;
             margin:15px 0;
         }
-        .buy{color:#22c55e;}
-        .sell{color:#ef4444;}
-        .hold{color:#eab308;}
+
+        .buy{
+            color:#22c55e;
+        }
+
+        .sell{
+            color:#ef4444;
+        }
+
+        .hold{
+            color:#eab308;
+        }
+
         </style>
     </head>
 
@@ -44,10 +57,10 @@ async def dashboard():
     <div class="card">
     <h2>AI Signals</h2>
 
-    <p>Gold : SELL | Confidence 60%</p>
-    <p>Silver : SELL | Confidence 60%</p>
-    <p>Oil Brent : SELL | Confidence 70%</p>
-    <p>USD Index : BUY | Confidence 60%</p>
+    <p>Gold : <span class="sell">SELL</span> | Confidence 60%</p>
+    <p>Silver : <span class="sell">SELL</span> | Confidence 60%</p>
+    <p>Oil Brent : <span class="sell">SELL</span> | Confidence 70%</p>
+    <p>USD Index : <span class="buy">BUY</span> | Confidence 60%</p>
 
     </div>
 
@@ -63,3 +76,14 @@ async def dashboard():
     </body>
     </html>
     """
+
+
+@router.get("/summary")
+async def dashboard_summary():
+
+    return {
+        "application": "ARPI Enterprise",
+        "dashboard": "summary",
+        "status": "active",
+        "version": "1.4.0"
+    }
