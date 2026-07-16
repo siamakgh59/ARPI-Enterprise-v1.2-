@@ -3,7 +3,7 @@ from datetime import datetime
 
 from app.market import market_live
 
-
+print("######## DASHBOARD ROUTER v1.4 ACTIVE ########")
 router = APIRouter(
     prefix="/dashboard",
     tags=["Dashboard"]
