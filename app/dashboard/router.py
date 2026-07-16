@@ -1,6 +1,5 @@
 from fastapi import APIRouter
-from datetime import datetime
-
+from app.market import market_live
 
 router = APIRouter(
     prefix="/dashboard",
@@ -11,51 +10,28 @@ router = APIRouter(
 @router.get("/summary")
 def dashboard_summary():
 
+    data = market_live()
+
+    analysis = data.get("analysis", {})
+
+    signals = []
+
+    for asset, item in analysis.items():
+        signals.append({
+            "asset": asset,
+            "signal": item.get("signal"),
+            "confidence": item.get("confidence"),
+            "risk": item.get("risk")
+        })
+
+
     return {
         "application": "ARPI Enterprise",
-        "version": "1.2",
-        "module": "Dashboard Summary",
-        "status": "active",
+        "version": "1.4.0",
 
-        "timestamp": datetime.utcnow().isoformat(),
+        "market_status": "ACTIVE",
 
-        "arpi_score": {
-            "value": 0,
-            "status": "initializing"
-        },
+        "top_signals": signals,
 
-        "market": {
-            "status": "LIVE",
-            "source": "ARPI Market Engine"
-        },
-
-        "risk": {
-            "level": "UNKNOWN",
-            "confidence": 0
-        },
-
-        "assets": {
-            "gold": {
-                "price": None,
-                "change": None
-            },
-            "silver": {
-                "price": None,
-                "change": None
-            },
-            "oil": {
-                "price": None,
-                "change": None
-            },
-            "bitcoin": {
-                "price": None,
-                "change": None
-            }
-        },
-
-        "signals": {
-            "action": "HOLD",
-            "confidence": 0,
-            "reason": "Engines not connected yet"
-        }
+        "total_assets": len(signals)
     }
