@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="ARPI Enterprise",
     description="AI Risk & Prediction Intelligence",
-    version="1.2.0",
+    version="1.4.0",
     lifespan=lifespan,
 )
 
