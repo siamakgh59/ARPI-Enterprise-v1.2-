@@ -3,7 +3,9 @@ from datetime import datetime
 
 from app.market import market_live
 
-print("######## DASHBOARD ROUTER v1.4 ACTIVE ########")
+print("######## ARPI BOARD DASHBOARD v1.5 LOADED ########")
+
+
 router = APIRouter(
     prefix="/dashboard",
     tags=["Dashboard"]
