@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from datetime import datetime
 
 from app.market import market_live
+from app.engines.reasoning_engine import generate_reasoning
 
 print("######## ARPI BOARD DASHBOARD v1.5 LOADED ########")
 
@@ -28,18 +29,22 @@ def dashboard_summary():
     for asset, item in analysis.items():
 
         confidence = item.get("confidence", 0)
+        signal = item.get("signal")
+        risk = item.get("risk")
 
-        signals.append({
-            "asset": asset,
-            "signal": item.get("signal"),
-            "confidence": confidence,
-            "risk": item.get("risk")
-        })
+        reasoning_result = generate_reasoning(
+            asset,
+            signal,
+            confidence,
+            risk
+        )
+
+        signals.append(reasoning_result)
 
         confidence_values.append(confidence)
 
-        if item.get("risk"):
-            risk_levels.append(item.get("risk"))
+        if risk:
+            risk_levels.append(risk)
 
 
     avg_confidence = (
