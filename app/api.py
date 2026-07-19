@@ -1,8 +1,9 @@
 from fastapi import APIRouter
 
 from app.market import market_router
+from app.engines.macro.router import macro_router
 
-from app.engines.risk.router import risk_router
+
 api_router = APIRouter()
 
 
@@ -10,7 +11,7 @@ api_router = APIRouter()
 async def root():
     return {
         "application": "ARPI Enterprise",
-        "version": "1.2.0",
+        "version": "1.4.0",
         "status": "online"
     }
 
@@ -29,5 +30,11 @@ async def api_test():
     }
 
 
-api_router.include_router(market_router)
-api_router.include_router(risk_router)
+api_router.include_router(
+    market_router
+)
+
+
+api_router.include_router(
+    macro_router
+)
