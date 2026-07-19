@@ -1,6 +1,6 @@
 from enum import Enum
-from pydantic import BaseModel
 from datetime import datetime
+from pydantic import BaseModel
 
 
 class RiskLevel(str, Enum):
@@ -22,9 +22,11 @@ class RiskRequest(BaseModel):
 
 
 class RiskReport(BaseModel):
+
     asset: str
 
     risk_score: float
+
     risk_level: RiskLevel
 
     components: dict
