@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 
 from app.engines.risk.engine import RiskEngine
+from app.engines.risk.market_adapter import market_to_risk_factors
+from app.market import market_live
 
 
 risk_router = APIRouter(
@@ -15,26 +17,28 @@ engine = RiskEngine()
 @risk_router.get("/analyze/{asset}")
 def analyze_risk(asset: str):
 
-    sample_factors = {
+    market_data = market_live()
 
-        "market_risk": 70,
+    analysis = market_data.get(
+        "analysis",
+        {}
+    )
 
-        "volatility_risk": 80,
 
-        "macro_risk": 60,
+    asset_analysis = analysis.get(
+        asset,
+        {}
+    )
 
-        "liquidity_risk": 40,
 
-        "geopolitical_risk": 90,
-
-        "data_confidence_risk": 20
-
-    }
+    factors = market_to_risk_factors(
+        asset_analysis
+    )
 
 
     report = engine.analyze(
         asset=asset,
-        factors=sample_factors
+        factors=factors
     )
 
 
