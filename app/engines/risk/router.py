@@ -19,6 +19,7 @@ def analyze_risk(asset: str):
 
     market_data = market_live()
 
+
     analysis = market_data.get(
         "analysis",
         {}
