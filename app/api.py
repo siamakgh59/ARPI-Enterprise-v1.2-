@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.market import market_router
 
+from app.engines.risk.router import risk_router
 api_router = APIRouter()
 
 
@@ -29,3 +30,4 @@ async def api_test():
 
 
 api_router.include_router(market_router)
+api_router.include_router(risk_router)
