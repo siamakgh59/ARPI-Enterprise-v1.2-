@@ -1,62 +1,42 @@
 from .models import MacroData
-from datetime import datetime
+from .providers.fred_provider import FredProvider
 
 
 class MacroProvider:
     """
     Macro Data Provider Layer
 
-    Responsible for collecting and normalizing
-    macroeconomic indicators.
-
-    This is the base provider interface.
-    Future implementations:
-    - FRED Provider
-    - Treasury Provider
-    - Market Data Provider
-    - Gold Flow Provider
+    Aggregates macro data sources.
     """
 
+    def __init__(self):
+        self.fred = FredProvider()
+
+
     def fetch(self) -> MacroData:
-        """
-        Fetch latest macro data.
 
-        Current phase:
-        Safe placeholder.
+        fred_data = self.fred.fetch()
 
-        Important:
-        Missing data must remain None.
-        Never convert missing values to zero.
-        """
 
         return MacroData(
-            fed_rate=None,
-            cpi=None,
+
+            fed_rate=fred_data.get(
+                "fed_rate"
+            ),
+
+            cpi=fred_data.get(
+                "cpi"
+            ),
+
             pce=None,
+
             nfp=None,
+
             dxy=None,
+
             us10y_yield=None,
+
             gold_etf_flow=None,
-            central_bank_gold_purchase=None,
-            timestamp=datetime.utcnow()
+
+            central_bank_gold_purchase=None
         )
-
-
-class LiveMacroProvider(MacroProvider):
-    """
-    Live Macro Provider.
-
-    Future implementation point for:
-    - FRED API
-    - US Treasury API
-    - Market data feeds
-    """
-
-    def fetch(self) -> MacroData:
-        """
-        Temporary live provider placeholder.
-
-        Will be replaced by real data adapters.
-        """
-
-        return super().fetch()
