@@ -1,5 +1,6 @@
 from .models import MacroData, MacroReport
 from .calculator import MacroRiskCalculator
+from .validator import MacroValidator
 
 
 class MacroEngine:
@@ -9,6 +10,7 @@ class MacroEngine:
 
     def __init__(self):
         self.calculator = MacroRiskCalculator()
+        self.validator = MacroValidator()
 
 
     def analyze(
@@ -21,41 +23,13 @@ class MacroEngine:
 
         factors = data.model_dump()
 
-        validation = self.validator.validate(factors)
+        validation = self.validator.validate(
+            factors
+        )
 
-result = self.calculator.calculate(
-    validation["validated_data"]
-)
-
-        input_fields = [
-            "fed_rate",
-            "cpi",
-            "pce",
-            "nfp",
-            "dxy",
-            "us10y_yield",
-            "gold_etf_flow",
-            "central_bank_gold_purchase"
-        ]
-
-        available_inputs = 0
-        missing_inputs = []
-
-        for field in input_fields:
-            if factors.get(field) is not None:
-                available_inputs += 1
-            else:
-                missing_inputs.append(field)
-
-
-        if available_inputs == len(input_fields):
-            data_quality = "GOOD"
-
-        elif available_inputs >= 3:
-            data_quality = "PARTIAL"
-
-        else:
-            data_quality = "LOW"
+        result = self.calculator.calculate(
+            validation["validated_data"]
+        )
 
 
         return MacroReport(
@@ -66,7 +40,10 @@ result = self.calculator.calculate(
             trend=result["trend"],
             confidence=result["confidence"],
             drivers=result["drivers"],
-            data_quality=data_quality,
-            available_inputs=available_inputs,
-            missing_inputs=missing_inputs
+            data_quality=validation["data_quality"],
+            available_inputs=validation["available_inputs"],
+            missing_inputs=validation["missing_inputs"],
+            metadata={
+                "warnings": validation["warnings"]
+            }
         )
