@@ -31,7 +31,6 @@ class MacroEngine:
             validation["validated_data"]
         )
 
-
         return MacroReport(
             engine="Macro Intelligence Engine",
             version="1.0.0",
