@@ -30,24 +30,30 @@ class MacroProvider:
         dxy = None
 
 
-        try:
+try:
 
-            usd_data = market_data.get(
-                "usd_index",
-                []
-            )
-
-
-            if usd_data:
-
-                dxy = usd_data.get(
-                    "price"
-                )
+    usd_data = market_data.get(
+        "usd_index"
+    )
 
 
-        except Exception:
+    if isinstance(usd_data, dict):
 
-            dxy = None
+        dxy = usd_data.get(
+            "price"
+        )
+
+
+    elif isinstance(usd_data, list) and len(usd_data) > 0:
+
+        dxy = usd_data[0].get(
+            "price"
+        )
+
+
+except Exception:
+
+    dxy = None
 
 
 
