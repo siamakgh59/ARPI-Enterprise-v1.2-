@@ -4,13 +4,22 @@ from .models import MacroData
 class MacroProvider:
     """
     Macro Data Provider Layer
-    Responsible for collecting macro indicators.
+
+    Responsible for collecting and normalizing
+    macroeconomic indicators.
     """
 
     def fetch(self) -> MacroData:
+        """
+        Fetch latest macro data.
+
+        Phase 1:
+        Placeholder provider.
+        Future:
+        FRED / Treasury / Market adapters.
+        """
 
         return MacroData(
-
             fed_rate=None,
             cpi=None,
             pce=None,
