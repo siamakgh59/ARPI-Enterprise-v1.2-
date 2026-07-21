@@ -79,7 +79,6 @@ class MacroReport(BaseModel):
         default_factory=list
     )
 
-    # Data quality information
     data_quality: str = "UNKNOWN"
 
     available_inputs: int = 0
@@ -88,8 +87,6 @@ class MacroReport(BaseModel):
         default_factory=list
     )
 
-    # Future expansion:
-    # provider name, source timestamp, API status, etc.
     metadata: Dict = Field(
         default_factory=dict
     )
