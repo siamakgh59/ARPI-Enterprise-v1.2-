@@ -7,6 +7,18 @@ class MacroValidator:
     before calculation.
     """
 
+    MACRO_FIELDS = [
+        "fed_rate",
+        "cpi",
+        "pce",
+        "nfp",
+        "dxy",
+        "us10y_yield",
+        "gold_etf_flow",
+        "central_bank_gold_purchase"
+    ]
+
+
     def validate(
         self,
         factors: Dict[str, float | None]
@@ -14,12 +26,12 @@ class MacroValidator:
 
         warnings: List[str] = []
         missing_inputs: List[str] = []
+        invalid_inputs: List[str] = []
 
         validated_data = factors.copy()
 
 
-        # Fields that should never normally be zero
-        positive_required_fields = [
+        zero_sensitive_fields = [
             "fed_rate",
             "cpi",
             "pce",
@@ -28,49 +40,44 @@ class MacroValidator:
         ]
 
 
-        for field in positive_required_fields:
+        for field in self.MACRO_FIELDS:
 
             value = factors.get(field)
 
             if value is None:
                 missing_inputs.append(field)
 
-            elif value == 0:
+            elif field in zero_sensitive_fields and value == 0:
                 warnings.append(
                     f"{field} value is suspicious"
                 )
 
+                invalid_inputs.append(field)
+
                 validated_data[field] = None
 
 
-        # Other optional fields
-
-        optional_fields = [
-            "nfp",
-            "gold_etf_flow",
-            "central_bank_gold_purchase"
-        ]
-
-
-        for field in optional_fields:
-
-            if factors.get(field) is None:
-                missing_inputs.append(field)
-
-
-        available_inputs = sum(
-            1 for value in validated_data.values()
-            if value is not None
+        valid_inputs = sum(
+            1
+            for field in self.MACRO_FIELDS
+            if validated_data.get(field) is not None
         )
 
 
-        if len(warnings) > 0:
+        raw_inputs = sum(
+            1
+            for field in self.MACRO_FIELDS
+            if factors.get(field) is not None
+        )
+
+
+        if invalid_inputs:
             data_quality = "INVALID"
 
-        elif available_inputs >= 6:
+        elif valid_inputs >= 6:
             data_quality = "GOOD"
 
-        elif available_inputs >= 3:
+        elif valid_inputs >= 3:
             data_quality = "PARTIAL"
 
         else:
@@ -82,5 +89,8 @@ class MacroValidator:
             "data_quality": data_quality,
             "warnings": warnings,
             "missing_inputs": missing_inputs,
-            "available_inputs": available_inputs
+            "invalid_inputs": invalid_inputs,
+            "raw_inputs": raw_inputs,
+            "valid_inputs": valid_inputs,
+            "available_inputs": valid_inputs
         }
