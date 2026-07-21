@@ -1,21 +1,54 @@
 from .models import MacroData
 from .providers.fred_provider import FredProvider
+from app.data.providers import get_best_market_data
 
 
 class MacroProvider:
     """
     Macro Data Provider Layer
 
-    Aggregates macro data sources.
+    Aggregates:
+    - FRED macro data
+    - Market data adapters
     """
 
+
     def __init__(self):
+
         self.fred = FredProvider()
+
 
 
     def fetch(self) -> MacroData:
 
         fred_data = self.fred.fetch()
+
+
+        market_data = get_best_market_data()
+
+
+        dxy = None
+
+
+        try:
+
+            usd_data = market_data.get(
+                "usd_index",
+                []
+            )
+
+
+            if usd_data:
+
+                dxy = usd_data[0].get(
+                    "price"
+                )
+
+
+        except Exception:
+
+            dxy = None
+
 
 
         return MacroData(
@@ -32,7 +65,7 @@ class MacroProvider:
 
             nfp=None,
 
-            dxy=None,
+            dxy=dxy,
 
             us10y_yield=fred_data.get(
                 "us10y_yield"
