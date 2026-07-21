@@ -56,6 +56,11 @@ class MacroData(BaseModel):
 class MacroReport(BaseModel):
     """
     Standard output contract of Macro Intelligence Engine
+
+    Designed for:
+    - Dashboard
+    - Risk Intelligence Engine (RIE)
+    - Fusion AI Engine
     """
 
     engine: str = "Macro Intelligence Engine"
@@ -70,9 +75,24 @@ class MacroReport(BaseModel):
 
     confidence: float = 0
 
-    drivers: List[str] = Field(default_factory=list)
+    drivers: List[str] = Field(
+        default_factory=list
+    )
 
-metadata: Dict = Field(default_factory=dict)
+    # Data quality information
+    data_quality: str = "UNKNOWN"
+
+    available_inputs: int = 0
+
+    missing_inputs: List[str] = Field(
+        default_factory=list
+    )
+
+    # Future expansion:
+    # provider name, source timestamp, API status, etc.
+    metadata: Dict = Field(
+        default_factory=dict
+    )
 
     timestamp: datetime = Field(
         default_factory=datetime.utcnow
