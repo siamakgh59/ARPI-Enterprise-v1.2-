@@ -70,9 +70,9 @@ class MacroReport(BaseModel):
 
     confidence: float = 0
 
-    drivers: List[str] = []
+    drivers: List[str] = Field(default_factory=list)
 
-    metadata: Dict = {}
+metadata: Dict = Field(default_factory=dict)
 
     timestamp: datetime = Field(
         default_factory=datetime.utcnow
