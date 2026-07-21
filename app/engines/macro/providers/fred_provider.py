@@ -4,6 +4,16 @@ from datetime import datetime
 
 
 class FredProvider:
+    """
+    FRED Economic Data Provider
+
+    Provides macroeconomic indicators:
+
+    - Federal Funds Rate
+    - CPI
+    - US 10 Year Treasury Yield
+    """
+
 
     BASE_URL = (
         "https://api.stlouisfed.org/fred/series/observations"
@@ -17,18 +27,25 @@ class FredProvider:
         )
 
 
-    def get_series(self, series_id: str):
+    def get_series(
+        self,
+        series_id: str
+    ):
 
         if not self.api_key:
-            print("FRED API KEY MISSING")
             return None
 
 
         params = {
+
             "series_id": series_id,
+
             "api_key": self.api_key,
+
             "file_type": "json",
+
             "sort_order": "desc",
+
             "limit": 1
         }
 
@@ -39,13 +56,6 @@ class FredProvider:
                 self.BASE_URL,
                 params=params,
                 timeout=10
-            )
-
-
-            print(
-                "FRED STATUS",
-                series_id,
-                response.status_code
             )
 
 
@@ -62,30 +72,25 @@ class FredProvider:
 
 
             if not observations:
-                print(
-                    "NO DATA",
-                    series_id
-                )
                 return None
 
 
-            value = observations[0]["value"]
+            value = observations[0].get(
+                "value"
+            )
 
 
-            if value == ".":
+            if value in (
+                None,
+                "."
+            ):
                 return None
 
 
             return float(value)
 
 
-        except Exception as e:
-
-            print(
-                "FRED ERROR",
-                series_id,
-                str(e)
-            )
+        except Exception:
 
             return None
 
@@ -93,28 +98,27 @@ class FredProvider:
 
     def fetch(self):
 
-        data = {
+        return {
 
             "fed_rate":
                 self.get_series(
                     "FEDFUNDS"
                 ),
 
+
             "cpi":
                 self.get_series(
                     "CPIAUCSL"
                 ),
 
+
+            "us10y_yield":
+                self.get_series(
+                    "DGS10"
+                ),
+
+
             "timestamp":
                 datetime.utcnow()
 
         }
-
-
-        print(
-            "FRED RESULT",
-            data
-        )
-
-
-        return data
