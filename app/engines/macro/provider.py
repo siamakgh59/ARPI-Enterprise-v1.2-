@@ -40,7 +40,7 @@ class MacroProvider:
 
             if usd_data:
 
-                dxy = usd_data[0].get(
+                dxy = usd_data.get(
                     "price"
                 )
 
