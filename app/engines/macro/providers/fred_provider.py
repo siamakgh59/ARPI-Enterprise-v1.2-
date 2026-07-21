@@ -4,14 +4,6 @@ from datetime import datetime
 
 
 class FredProvider:
-    """
-    FRED Economic Data Provider
-
-    Provides:
-    - Federal Funds Rate
-    - CPI
-    """
-
 
     BASE_URL = (
         "https://api.stlouisfed.org/fred/series/observations"
@@ -25,12 +17,10 @@ class FredProvider:
         )
 
 
-    def get_series(
-        self,
-        series_id: str
-    ):
+    def get_series(self, series_id: str):
 
         if not self.api_key:
+            print("FRED API KEY MISSING")
             return None
 
 
@@ -51,7 +41,16 @@ class FredProvider:
                 timeout=10
             )
 
+
+            print(
+                "FRED STATUS",
+                series_id,
+                response.status_code
+            )
+
+
             response.raise_for_status()
+
 
             data = response.json()
 
@@ -63,10 +62,15 @@ class FredProvider:
 
 
             if not observations:
+                print(
+                    "NO DATA",
+                    series_id
+                )
                 return None
 
 
             value = observations[0]["value"]
+
 
             if value == ".":
                 return None
@@ -75,7 +79,13 @@ class FredProvider:
             return float(value)
 
 
-        except Exception:
+        except Exception as e:
+
+            print(
+                "FRED ERROR",
+                series_id,
+                str(e)
+            )
 
             return None
 
@@ -83,7 +93,7 @@ class FredProvider:
 
     def fetch(self):
 
-        return {
+        data = {
 
             "fed_rate":
                 self.get_series(
@@ -99,3 +109,12 @@ class FredProvider:
                 datetime.utcnow()
 
         }
+
+
+        print(
+            "FRED RESULT",
+            data
+        )
+
+
+        return data
