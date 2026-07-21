@@ -21,9 +21,11 @@ class MacroEngine:
 
         factors = data.model_dump()
 
-        result = self.calculator.calculate(
-            factors
-        )
+        validation = self.validator.validate(factors)
+
+result = self.calculator.calculate(
+    validation["validated_data"]
+)
 
         input_fields = [
             "fed_rate",
