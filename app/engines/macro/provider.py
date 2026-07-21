@@ -34,9 +34,15 @@ class MacroProvider:
 
             dxy=None,
 
-            us10y_yield=None,
+            us10y_yield=fred_data.get(
+                "us10y_yield"
+            ),
 
             gold_etf_flow=None,
 
-            central_bank_gold_purchase=None
+            central_bank_gold_purchase=None,
+
+            timestamp=fred_data.get(
+                "timestamp"
+            )
         )
