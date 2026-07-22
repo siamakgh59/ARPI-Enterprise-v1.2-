@@ -21,6 +21,11 @@ class MacroProvider:
 
         fred_data = self.fred.fetch()
 
+        print("========== FRED DATA DEBUG ==========")
+        print(fred_data)
+        print("=====================================")
+
+
         market_data = get_best_market_data()
 
 
@@ -46,13 +51,18 @@ class MacroProvider:
                 )
 
 
-        except Exception:
+        except Exception as e:
+
+            print(
+                "DXY DEBUG ERROR:",
+                e
+            )
 
             dxy = None
 
 
 
-        return MacroData(
+        macro_data = MacroData(
 
             fed_rate=fred_data.get(
                 "fed_rate"
@@ -84,3 +94,13 @@ class MacroProvider:
                 "timestamp"
             )
         )
+
+
+        print("========== MACRO DATA DEBUG ==========")
+        print(
+            macro_data.model_dump()
+        )
+        print("======================================")
+
+
+        return macro_data
