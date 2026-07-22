@@ -35,15 +35,6 @@ class MacroProvider:
             )
 
 
-            # Market provider returns list of providers
-            # Example:
-            # [
-            #   {
-            #     "provider": "Yahoo Finance",
-            #     "price": 101.19
-            #   }
-            # ]
-
             if isinstance(
                 usd_data,
                 list
@@ -71,9 +62,13 @@ class MacroProvider:
                 "cpi"
             ),
 
-            pce=None,
+            pce=fred_data.get(
+                "pce"
+            ),
 
-            nfp=None,
+            nfp=fred_data.get(
+                "nfp"
+            ),
 
             dxy=dxy,
 
