@@ -3,8 +3,6 @@ import time
 import requests
 from datetime import datetime
 
-from ..cache import MacroCache
-
 
 class FredProvider:
     """
@@ -15,7 +13,6 @@ class FredProvider:
     Features:
     - Retry mechanism
     - Timeout handling
-    - Last valid value cache
 
     Provides:
     - Federal Funds Rate
@@ -37,8 +34,6 @@ class FredProvider:
         )
 
         self.max_retries = 3
-
-        self.cache = MacroCache()
 
 
 
@@ -110,7 +105,12 @@ class FredProvider:
 
                 if not observations:
 
-                    break
+                    print(
+                        "NO OBSERVATION:",
+                        series_id
+                    )
+
+                    return None
 
 
 
@@ -124,26 +124,17 @@ class FredProvider:
                     "."
                 ):
 
-                    break
+                    print(
+                        "INVALID VALUE:",
+                        series_id,
+                        value
+                    )
+
+                    return None
 
 
 
-                value = float(value)
-
-
-
-                # Save successful value
-
-                self.cache.set(
-
-                    series_id,
-
-                    value
-
-                )
-
-
-                return value
+                return float(value)
 
 
 
@@ -179,25 +170,9 @@ class FredProvider:
 
 
 
-        # Try cache after failures
-
-        cached_value = self.cache.get_value(
-            series_id
-        )
-
-
-        if cached_value is not None:
-
-            print(
-                f"FRED CACHE USED {series_id}: {cached_value}"
-            )
-
-            return cached_value
-
-
-
         print(
-            f"FRED FAILED NO CACHE: {series_id}"
+            "FRED FAILED AFTER RETRIES:",
+            series_id
         )
 
 
