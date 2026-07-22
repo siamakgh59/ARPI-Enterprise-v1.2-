@@ -23,6 +23,7 @@ class MacroProvider:
 
         market_data = get_best_market_data()
 
+
         dxy = None
 
 
@@ -30,13 +31,26 @@ class MacroProvider:
 
             usd_data = market_data.get(
                 "usd_index",
-                {}
+                []
             )
 
 
-            if isinstance(usd_data, dict):
+            # Market provider returns list of providers
+            # Example:
+            # [
+            #   {
+            #     "provider": "Yahoo Finance",
+            #     "price": 101.19
+            #   }
+            # ]
 
-                dxy = usd_data.get(
+            if isinstance(
+                usd_data,
+                list
+            ) and len(usd_data) > 0:
+
+
+                dxy = usd_data[0].get(
                     "price"
                 )
 
