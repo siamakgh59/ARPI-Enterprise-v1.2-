@@ -3,17 +3,19 @@ import time
 import requests
 from datetime import datetime
 
+from ..cache import MacroCache
+
 
 class FredProvider:
     """
     FRED Economic Data Provider
 
-    ARPI Macro Reliability Layer v1.0
+    ARPI Macro Reliability Layer v1.1
 
     Features:
     - Retry mechanism
     - Timeout handling
-    - Detailed logging
+    - Last valid value cache
 
     Provides:
     - Federal Funds Rate
@@ -35,6 +37,8 @@ class FredProvider:
         )
 
         self.max_retries = 3
+
+        self.cache = MacroCache()
 
 
 
@@ -64,6 +68,7 @@ class FredProvider:
             "sort_order": "desc",
 
             "limit": 1
+
         }
 
 
@@ -105,12 +110,7 @@ class FredProvider:
 
                 if not observations:
 
-                    print(
-                        "NO OBSERVATION:",
-                        series_id
-                    )
-
-                    return None
+                    break
 
 
 
@@ -124,17 +124,26 @@ class FredProvider:
                     "."
                 ):
 
-                    print(
-                        "INVALID VALUE:",
-                        series_id,
-                        value
-                    )
-
-                    return None
+                    break
 
 
 
-                return float(value)
+                value = float(value)
+
+
+
+                # Save successful value
+
+                self.cache.set(
+
+                    series_id,
+
+                    value
+
+                )
+
+
+                return value
 
 
 
@@ -143,6 +152,7 @@ class FredProvider:
                 print(
                     f"FRED TIMEOUT {series_id} ATTEMPT {attempt}"
                 )
+
 
 
             except Exception as e:
@@ -169,9 +179,25 @@ class FredProvider:
 
 
 
-        print(
-            "FRED FAILED AFTER RETRIES:",
+        # Try cache after failures
+
+        cached_value = self.cache.get_value(
             series_id
+        )
+
+
+        if cached_value is not None:
+
+            print(
+                f"FRED CACHE USED {series_id}: {cached_value}"
+            )
+
+            return cached_value
+
+
+
+        print(
+            f"FRED FAILED NO CACHE: {series_id}"
         )
 
 
