@@ -16,6 +16,7 @@ class FredProvider:
     - US 10 Year Treasury Yield
     """
 
+
     BASE_URL = (
         "https://api.stlouisfed.org/fred/series/observations"
     )
@@ -28,13 +29,20 @@ class FredProvider:
         )
 
 
+
     def get_series(
         self,
         series_id: str
     ):
 
         if not self.api_key:
+
+            print(
+                "FRED API KEY NOT FOUND"
+            )
+
             return None
+
 
 
         params = {
@@ -48,15 +56,20 @@ class FredProvider:
             "sort_order": "desc",
 
             "limit": 1
+
         }
 
 
         try:
 
             response = requests.get(
+
                 self.BASE_URL,
+
                 params=params,
+
                 timeout=10
+
             )
 
 
@@ -67,73 +80,130 @@ class FredProvider:
 
 
             observations = data.get(
+
                 "observations",
+
                 []
+
             )
 
 
             if not observations:
+
+                print(
+                    "NO OBSERVATION:",
+                    series_id
+                )
+
                 return None
 
 
+
             value = observations[0].get(
+
                 "value"
+
             )
 
 
             if value in (
+
                 None,
+
                 "."
+
             ):
+
+                print(
+                    "INVALID VALUE:",
+                    series_id,
+                    value
+                )
+
                 return None
+
 
 
             return float(value)
 
 
-        except Exception:
+
+        except Exception as e:
+
+            print(
+
+                "FRED ERROR:",
+
+                series_id,
+
+                e
+
+            )
 
             return None
 
 
 
+
     def fetch(self):
-        print("PCE TEST:", self.get_series("PCEPI"))
-        print("NFP TEST:", self.get_series("PAYEMS"))
-        
+
+
+        fed_rate = self.get_series(
+            "FEDFUNDS"
+        )
+
+
+        cpi = self.get_series(
+            "CPIAUCSL"
+        )
+
+
+        pce = self.get_series(
+            "PCEPI"
+        )
+
+
+        nfp = self.get_series(
+            "PAYEMS"
+        )
+
+
+        us10y = self.get_series(
+            "DGS10"
+        )
+
+
+        print(
+            "DEBUG FRED VALUES:",
+            {
+                "fed_rate": fed_rate,
+                "cpi": cpi,
+                "pce": pce,
+                "nfp": nfp,
+                "us10y_yield": us10y
+            }
+        )
+
+
+
         return {
 
-            "fed_rate":
-                self.get_series(
-                    "FEDFUNDS"
-                ),
+
+            "fed_rate": fed_rate,
 
 
-            "cpi":
-                self.get_series(
-                    "CPIAUCSL"
-                ),
+            "cpi": cpi,
 
 
-            "pce":
-                self.get_series(
-                    "PCEPI"
-                ),
+            "pce": pce,
 
 
-            "nfp":
-                self.get_series(
-                    "PAYEMS"
-                ),
+            "nfp": nfp,
 
 
-            "us10y_yield":
-                self.get_series(
-                    "DGS10"
-                ),
+            "us10y_yield": us10y,
 
 
-            "timestamp":
-                datetime.utcnow()
+            "timestamp": datetime.utcnow()
 
         }
