@@ -11,9 +11,10 @@ class FredProvider:
 
     - Federal Funds Rate
     - CPI
+    - PCE
+    - Non Farm Payroll
     - US 10 Year Treasury Yield
     """
-
 
     BASE_URL = (
         "https://api.stlouisfed.org/fred/series/observations"
@@ -109,6 +110,18 @@ class FredProvider:
             "cpi":
                 self.get_series(
                     "CPIAUCSL"
+                ),
+
+
+            "pce":
+                self.get_series(
+                    "PCEPI"
+                ),
+
+
+            "nfp":
+                self.get_series(
+                    "PAYEMS"
                 ),
 
 
