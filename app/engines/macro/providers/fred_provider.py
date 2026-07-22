@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 from datetime import datetime
 
@@ -6,6 +7,13 @@ from datetime import datetime
 class FredProvider:
     """
     FRED Economic Data Provider
+
+    ARPI Macro Reliability Layer v1.0
+
+    Features:
+    - Retry mechanism
+    - Timeout handling
+    - Detailed logging
 
     Provides:
     - Federal Funds Rate
@@ -26,6 +34,8 @@ class FredProvider:
             "FRED_API_KEY"
         )
 
+        self.max_retries = 3
+
 
 
     def get_series(
@@ -42,6 +52,7 @@ class FredProvider:
             return None
 
 
+
         params = {
 
             "series_id": series_id,
@@ -56,71 +67,116 @@ class FredProvider:
         }
 
 
-        try:
 
-            response = requests.get(
-                self.BASE_URL,
-                params=params,
-                timeout=10
-            )
+        for attempt in range(
+            1,
+            self.max_retries + 1
+        ):
 
-
-            response.raise_for_status()
-
-
-            data = response.json()
-
-
-            observations = data.get(
-                "observations",
-                []
-            )
-
-
-            if not observations:
+            try:
 
                 print(
-                    "NO OBSERVATION:",
-                    series_id
+                    f"FRED REQUEST {series_id} ATTEMPT {attempt}"
                 )
 
-                return None
+
+                response = requests.get(
+
+                    self.BASE_URL,
+
+                    params=params,
+
+                    timeout=15
+
+                )
+
+
+                response.raise_for_status()
+
+
+                data = response.json()
+
+
+                observations = data.get(
+                    "observations",
+                    []
+                )
+
+
+                if not observations:
+
+                    print(
+                        "NO OBSERVATION:",
+                        series_id
+                    )
+
+                    return None
 
 
 
-            value = observations[0].get(
-                "value"
-            )
+                value = observations[0].get(
+                    "value"
+                )
 
 
-            if value in (
-                None,
-                "."
-            ):
+                if value in (
+                    None,
+                    "."
+                ):
+
+                    print(
+                        "INVALID VALUE:",
+                        series_id,
+                        value
+                    )
+
+                    return None
+
+
+
+                return float(value)
+
+
+
+            except requests.exceptions.Timeout:
 
                 print(
-                    "INVALID VALUE:",
+                    f"FRED TIMEOUT {series_id} ATTEMPT {attempt}"
+                )
+
+
+            except Exception as e:
+
+                print(
+                    "FRED ERROR:",
                     series_id,
-                    value
+                    e
                 )
 
-                return None
+
+
+            if attempt < self.max_retries:
+
+                wait_time = attempt * 2
+
+                print(
+                    f"RETRY WAIT {wait_time}s"
+                )
+
+                time.sleep(
+                    wait_time
+                )
 
 
 
-            return float(value)
+        print(
+            "FRED FAILED AFTER RETRIES:",
+            series_id
+        )
 
 
+        return None
 
-        except Exception as e:
-
-            print(
-                "FRED ERROR:",
-                series_id,
-                e
-            )
-
-            return None
 
 
 
@@ -156,9 +212,11 @@ class FredProvider:
         )
 
 
+
         print(
             "######## FRED VALUES ########"
         )
+
 
         print(
             {
@@ -170,9 +228,11 @@ class FredProvider:
             }
         )
 
+
         print(
             "#############################"
         )
+
 
 
         return {
