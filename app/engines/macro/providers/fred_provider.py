@@ -7,15 +7,13 @@ class FredProvider:
     """
     FRED Economic Data Provider
 
-    Provides macroeconomic indicators:
-
+    Provides:
     - Federal Funds Rate
     - CPI
     - PCE
     - Non Farm Payroll
     - US 10 Year Treasury Yield
     """
-
 
     BASE_URL = (
         "https://api.stlouisfed.org/fred/series/observations"
@@ -44,7 +42,6 @@ class FredProvider:
             return None
 
 
-
         params = {
 
             "series_id": series_id,
@@ -56,20 +53,15 @@ class FredProvider:
             "sort_order": "desc",
 
             "limit": 1
-
         }
 
 
         try:
 
             response = requests.get(
-
                 self.BASE_URL,
-
                 params=params,
-
                 timeout=10
-
             )
 
 
@@ -80,11 +72,8 @@ class FredProvider:
 
 
             observations = data.get(
-
                 "observations",
-
                 []
-
             )
 
 
@@ -100,18 +89,13 @@ class FredProvider:
 
 
             value = observations[0].get(
-
                 "value"
-
             )
 
 
             if value in (
-
                 None,
-
                 "."
-
             ):
 
                 print(
@@ -131,21 +115,20 @@ class FredProvider:
         except Exception as e:
 
             print(
-
                 "FRED ERROR:",
-
                 series_id,
-
                 e
-
             )
 
             return None
 
 
 
-
     def fetch(self):
+
+        print(
+            "######## FRED PROVIDER FETCH ACTIVE ########"
+        )
 
 
         fed_rate = self.get_series(
@@ -168,41 +151,41 @@ class FredProvider:
         )
 
 
-        us10y = self.get_series(
+        us10y_yield = self.get_series(
             "DGS10"
         )
 
 
         print(
-            "DEBUG FRED VALUES:",
+            "######## FRED VALUES ########"
+        )
+
+        print(
             {
                 "fed_rate": fed_rate,
                 "cpi": cpi,
                 "pce": pce,
                 "nfp": nfp,
-                "us10y_yield": us10y
+                "us10y_yield": us10y_yield
             }
         )
 
+        print(
+            "#############################"
+        )
 
 
         return {
 
-
             "fed_rate": fed_rate,
-
 
             "cpi": cpi,
 
-
             "pce": pce,
-
 
             "nfp": nfp,
 
-
-            "us10y_yield": us10y,
-
+            "us10y_yield": us10y_yield,
 
             "timestamp": datetime.utcnow()
 
