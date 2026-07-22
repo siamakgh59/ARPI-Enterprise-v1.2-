@@ -28,9 +28,18 @@ def live_macro():
 
     data = provider.fetch()
 
-    print("===== MACRO INPUTS =====")
-print(data.model_dump())
-print("========================")
+    @macro_router.get("/live")
+def live_macro():
+
+    data = provider.fetch()
+
+    print("MACRO INPUTS:", data.model_dump())
+
+    report = engine.analyze(
+        data
+    )
+
+    return report
 
     report = engine.analyze(
         data
