@@ -28,6 +28,10 @@ def live_macro():
 
     data = provider.fetch()
 
+    print("===== MACRO INPUTS =====")
+print(data.model_dump())
+print("========================")
+
     report = engine.analyze(
         data
     )
