@@ -12,48 +12,38 @@ class MacroProvider:
     - Market data adapters
     """
 
-
     def __init__(self):
 
         self.fred = FredProvider()
-
 
 
     def fetch(self) -> MacroData:
 
         fred_data = self.fred.fetch()
 
-
         market_data = get_best_market_data()
-
 
         dxy = None
 
 
-try:
+        try:
 
-    usd_data = market_data.get(
-        "usd_index"
-    )
-
-
-    if isinstance(usd_data, dict):
-
-        dxy = usd_data.get(
-            "price"
-        )
+            usd_data = market_data.get(
+                "usd_index",
+                {}
+            )
 
 
-    elif isinstance(usd_data, list) and len(usd_data) > 0:
+            if isinstance(usd_data, dict):
 
-        dxy = usd_data[0].get(
-            "price"
-        )
+                dxy = usd_data.get(
+                    "price"
+                )
 
 
-except Exception:
+        except Exception:
 
-    dxy = None
+            dxy = None
 
 
 
