@@ -98,7 +98,9 @@ class FredProvider:
 
 
     def fetch(self):
-
+        print("PCE TEST:", self.get_series("PCEPI"))
+        print("NFP TEST:", self.get_series("PAYEMS"))
+        
         return {
 
             "fed_rate":
