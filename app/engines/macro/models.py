@@ -65,7 +65,7 @@ class MacroReport(BaseModel):
 
     engine: str = "Macro Intelligence Engine"
 
-    version: str = "1.0.0"
+    version: str = "1.1.0"
 
     macro_score: float = 0
 
