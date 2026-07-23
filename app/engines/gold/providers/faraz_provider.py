@@ -9,15 +9,18 @@ class FarazGoldProvider:
     """
     Faraz.io Gold Market Data Provider
 
-    Flow:
+    Architecture:
 
     FarazScraper
-          ↓
+          |
+          v
     Raw Data
-          ↓
+          |
+          v
     GoldNormalizer
-          ↓
-    GoldData Format
+          |
+          v
+    GoldData Schema
     """
 
 
@@ -33,51 +36,79 @@ class FarazGoldProvider:
 
     def fetch_gold_data(self) -> Dict:
         """
-        Fetch and normalize gold market data.
+        Fetch latest gold market data.
+
+        Any external failure must not
+        crash ARPI.
         """
 
 
-        raw_data = self.scraper.fetch_page()
+        try:
+
+            raw_data = self.scraper.fetch_page()
 
 
-        # Temporary fallback protection
+            if isinstance(raw_data, dict):
 
-        if isinstance(raw_data, dict) and "error" in raw_data:
+                if "error" in raw_data:
 
-            return {
-
-                "xau_usd": None,
-
-                "dxy": None,
-
-                "us10y_yield": None,
-
-                "usd_free_rate": None,
-
-                "usd_change": None,
-
-                "gold18_price": None,
-
-                "mesghal_price": None,
-
-                "coin_emami": None,
-
-                "coin_bahar": None,
-
-                "coin_bubble": None,
-
-                "gold_daily_change": None,
-
-                "volume": None,
-
-                "timestamp": datetime.utcnow()
-
-            }
+                    return self._fallback()
 
 
-        normalized_data = self.normalizer.normalize(
-            raw_data
-        )
+
+            normalized = self.normalizer.normalize(
+                raw_data
+            )
 
 
-        return normalized_data
+            return normalized
+
+
+
+        except Exception as e:
+
+            print(
+                "Faraz Provider Error:",
+                str(e)
+            )
+
+            return self._fallback()
+
+
+
+    def _fallback(self) -> Dict:
+        """
+        Safe fallback response.
+        Keeps ARPI alive when provider fails.
+        """
+
+
+        return {
+
+            "xau_usd": None,
+
+            "dxy": None,
+
+            "us10y_yield": None,
+
+            "usd_free_rate": None,
+
+            "usd_change": None,
+
+            "gold18_price": None,
+
+            "mesghal_price": None,
+
+            "coin_emami": None,
+
+            "coin_bahar": None,
+
+            "coin_bubble": None,
+
+            "gold_daily_change": None,
+
+            "volume": None,
+
+            "timestamp": datetime.utcnow()
+
+        }
