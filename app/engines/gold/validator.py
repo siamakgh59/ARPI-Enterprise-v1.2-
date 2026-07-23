@@ -8,10 +8,9 @@ class GoldValidator:
     """
 
 
-    # Core Gold Market Inputs
     GOLD_FIELDS = [
 
-        # Global
+        # Global Market
 
         "xau_usd",
 
@@ -37,14 +36,13 @@ class GoldValidator:
         "coin_bubble",
 
 
-        # Behavior
+        # Market Behavior
 
         "gold_daily_change",
 
         "volume"
 
     ]
-
 
 
     def validate(
@@ -63,18 +61,19 @@ class GoldValidator:
         validated_data = factors.copy()
 
 
-
-        # Missing Detection
+        # Detect missing values
 
         for field in self.GOLD_FIELDS:
 
-            if factors.get(field) is None:
+            value = factors.get(field)
+
+            if value is None:
 
                 missing_inputs.append(field)
 
 
 
-        # Positive Values Validation
+        # Validate positive values
 
         positive_fields = [
 
@@ -110,7 +109,7 @@ class GoldValidator:
 
 
 
-        # Bubble Validation
+        # Validate coin bubble
 
         bubble = factors.get(
             "coin_bubble"
@@ -133,6 +132,8 @@ class GoldValidator:
 
 
 
+        # Count valid inputs
+
         valid_inputs = sum(
 
             1
@@ -141,6 +142,27 @@ class GoldValidator:
 
             if validated_data.get(field) is not None
 
+        )
+
+
+
+        # Debug Log
+
+        print(
+            "######## GOLD VALIDATION DEBUG ########"
+        )
+
+        print(
+            {
+                "available_inputs": valid_inputs,
+                "missing_inputs": missing_inputs,
+                "invalid_inputs": invalid_inputs,
+                "warnings": warnings
+            }
+        )
+
+        print(
+            "########################################"
         )
 
 
