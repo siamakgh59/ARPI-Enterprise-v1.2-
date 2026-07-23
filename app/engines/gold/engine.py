@@ -7,7 +7,7 @@ class GoldEngine:
     """
     Core Gold Intelligence Engine
 
-    Pipeline:
+    Flow:
 
     GoldData
         ↓
@@ -18,11 +18,13 @@ class GoldEngine:
     GoldReport
     """
 
+
     def __init__(self):
 
         self.validator = GoldValidator()
 
         self.calculator = GoldCalculator()
+
 
 
     def analyze(
@@ -32,6 +34,7 @@ class GoldEngine:
         """
         Analyze gold market conditions
         """
+
 
         factors = data.model_dump()
 
