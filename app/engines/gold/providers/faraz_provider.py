@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Dict
 
 from .faraz_scraper import FarazScraper
+from .faraz_parser import FarazParser
 from .normalizer import GoldNormalizer
 
 
@@ -14,7 +15,13 @@ class FarazGoldProvider:
     FarazScraper
           |
           v
-    Raw Data
+    Raw HTML
+          |
+          v
+    FarazParser
+          |
+          v
+    Parsed Data
           |
           v
     GoldNormalizer
@@ -24,11 +31,14 @@ class FarazGoldProvider:
     """
 
 
+
     def __init__(self):
 
         self.provider_name = "Faraz.io"
 
         self.scraper = FarazScraper()
+
+        self.parser = FarazParser()
 
         self.normalizer = GoldNormalizer()
 
@@ -37,27 +47,43 @@ class FarazGoldProvider:
     def fetch_gold_data(self) -> Dict:
         """
         Fetch latest gold market data.
-
-        Any external failure must not
-        crash ARPI.
+        External failures must not crash ARPI.
         """
 
 
         try:
 
-            raw_data = self.scraper.fetch_page()
+            raw_html = self.scraper.fetch_page()
 
 
-            if isinstance(raw_data, dict):
+            if isinstance(raw_html, dict):
 
-                if "error" in raw_data:
+                if "error" in raw_html:
 
                     return self._fallback()
 
 
 
+            parsed_data = self.parser.parse(
+                raw_html
+            )
+
+
+            print(
+                "######## FARAZ PARSED DATA ########"
+            )
+
+            print(
+                parsed_data
+            )
+
+            print(
+                "###################################"
+            )
+
+
             normalized = self.normalizer.normalize(
-                raw_data
+                parsed_data
             )
 
 
@@ -67,10 +93,12 @@ class FarazGoldProvider:
 
         except Exception as e:
 
+
             print(
                 "Faraz Provider Error:",
                 str(e)
             )
+
 
             return self._fallback()
 
@@ -79,7 +107,7 @@ class FarazGoldProvider:
     def _fallback(self) -> Dict:
         """
         Safe fallback response.
-        Keeps ARPI alive when provider fails.
+        Keeps ARPI alive.
         """
 
 
