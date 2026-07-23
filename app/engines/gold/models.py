@@ -1,44 +1,60 @@
-from typing import List
+from pydantic import BaseModel
+from typing import List, Optional
+from datetime import datetime
+
+
+class GoldData(BaseModel):
+    """
+    Input data model for Gold Intelligence Engine
+    """
+
+    xau_usd: Optional[float] = None
+
+    usd_irr: Optional[float] = None
+
+    gold18_price: Optional[float] = None
+
+    coin_emami: Optional[float] = None
+
+    coin_bubble: Optional[float] = None
+
+    dxy: Optional[float] = None
+
+    us10y_yield: Optional[float] = None
+
+    gold_etf_flow: Optional[float] = None
+
+    central_bank_gold_purchase: Optional[float] = None
+
+    timestamp: Optional[datetime] = None
+
 
 
 class GoldReport(BaseModel):
     """
-    Gold Intelligence Engine output
+    Output report from Gold Intelligence Engine
     """
 
-    engine: str = "Gold Intelligence Engine"
+    engine: str
 
-    version: str = "1.0.0"
+    version: str
 
+    gold_score: float
 
-    gold_score: float = 0
+    trend: str
 
+    signal: str
 
-    trend: str = "NEUTRAL"
+    confidence: float
 
+    drivers: List[str]
 
-    signal: str = "HOLD"
+    risks: List[str]
 
+    data_quality: str
 
-    confidence: float = 0
+    available_inputs: int
 
+    missing_inputs: List[str]
 
-    drivers: List[str] = Field(
-        default_factory=list
-    )
-
-
-    risks: List[str] = Field(
-        default_factory=list
-    )
-
-
-    data_quality: str = "UNKNOWN"
-
-
-    available_inputs: int = 0
-
-
-    missing_inputs: List[str] = Field(
-        default_factory=list
-    )
+    timestamp: datetime = datetime.utcnow()
