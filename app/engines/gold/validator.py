@@ -3,7 +3,7 @@ from typing import Dict, List
 
 class GoldValidator:
     """
-    Validates gold market input data
+    Validates gold intelligence input data
     before calculation.
     """
 
@@ -11,6 +11,8 @@ class GoldValidator:
     GOLD_FIELDS = [
 
         "xau_usd",
+
+        "gold_daily_change",
 
         "usd_irr",
 
@@ -51,65 +53,76 @@ class GoldValidator:
         validated_data = factors.copy()
 
 
-        # بررسی داده‌های ضروری
-
-        critical_fields = [
-
-            "xau_usd",
-
-            "usd_irr",
-
-            "gold18_price"
-
-        ]
-
+        # Detect missing values
 
         for field in self.GOLD_FIELDS:
 
-
             value = factors.get(field)
-
 
             if value is None:
 
                 missing_inputs.append(field)
 
 
-        # کنترل مقادیر غیرمنطقی
 
-        if factors.get("xau_usd") is not None:
+        # Validate prices
 
-            if factors["xau_usd"] <= 0:
+        positive_fields = [
+
+            "xau_usd",
+
+            "usd_irr",
+
+            "gold18_price",
+
+            "mesghal_price",
+
+            "coin_emami",
+
+            "coin_bahar"
+
+        ]
+
+
+        for field in positive_fields:
+
+            value = factors.get(field)
+
+
+            if value is not None and value <= 0:
 
                 warnings.append(
-                    "Invalid XAU/USD price"
+                    f"{field} value is invalid"
+                )
+
+                invalid_inputs.append(field)
+
+                validated_data[field] = None
+
+
+
+        # Validate bubble
+
+        bubble = factors.get(
+            "coin_bubble"
+        )
+
+
+        if bubble is not None:
+
+            if bubble < 0:
+
+                warnings.append(
+                    "Negative coin bubble detected"
                 )
 
                 invalid_inputs.append(
-                    "xau_usd"
+                    "coin_bubble"
                 )
 
-                validated_data["xau_usd"] = None
+                validated_data["coin_bubble"] = None
 
 
-
-        if factors.get("usd_irr") is not None:
-
-            if factors["usd_irr"] <= 0:
-
-                warnings.append(
-                    "Invalid USD/IRR price"
-                )
-
-                invalid_inputs.append(
-                    "usd_irr"
-                )
-
-                validated_data["usd_irr"] = None
-
-
-
-        # کیفیت داده
 
         valid_inputs = sum(
 
@@ -122,26 +135,18 @@ class GoldValidator:
         )
 
 
-        total_inputs = len(
-            self.GOLD_FIELDS
-        )
-
-
 
         if invalid_inputs:
 
             data_quality = "INVALID"
 
-
         elif valid_inputs >= 8:
 
             data_quality = "GOOD"
 
-
         elif valid_inputs >= 4:
 
             data_quality = "PARTIAL"
-
 
         else:
 
