@@ -10,7 +10,7 @@ class FarazGoldProvider:
     """
     Faraz.io Gold Market Data Provider
 
-    Architecture:
+    Flow:
 
     FarazScraper
           |
@@ -21,15 +21,14 @@ class FarazGoldProvider:
     FarazParser
           |
           v
-    Parsed Data
+    Parsed Gold Data
           |
           v
     GoldNormalizer
           |
           v
-    GoldData Schema
+    Gold Engine
     """
-
 
 
     def __init__(self):
@@ -47,7 +46,9 @@ class FarazGoldProvider:
     def fetch_gold_data(self) -> Dict:
         """
         Fetch latest gold market data.
-        External failures must not crash ARPI.
+
+        Provider failure must never
+        stop ARPI.
         """
 
 
@@ -60,6 +61,10 @@ class FarazGoldProvider:
 
                 if "error" in raw_html:
 
+                    print(
+                        "Faraz scraper returned error"
+                    )
+
                     return self._fallback()
 
 
@@ -70,7 +75,7 @@ class FarazGoldProvider:
 
 
             print(
-                "######## FARAZ PARSED DATA ########"
+                "######## PARSED GOLD DATA ########"
             )
 
             print(
@@ -78,12 +83,25 @@ class FarazGoldProvider:
             )
 
             print(
-                "###################################"
+                "##################################"
             )
 
 
             normalized = self.normalizer.normalize(
                 parsed_data
+            )
+
+
+            print(
+                "######## NORMALIZED GOLD DATA ########"
+            )
+
+            print(
+                normalized
+            )
+
+            print(
+                "#######################################"
             )
 
 
@@ -106,8 +124,7 @@ class FarazGoldProvider:
 
     def _fallback(self) -> Dict:
         """
-        Safe fallback response.
-        Keeps ARPI alive.
+        Safe fallback.
         """
 
 
