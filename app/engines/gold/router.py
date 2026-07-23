@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from .models import GoldData, GoldReport
 from .engine import GoldEngine
+from .providers import FarazGoldProvider
 
 
 gold_router = APIRouter(
@@ -11,6 +12,9 @@ gold_router = APIRouter(
 
 
 engine = GoldEngine()
+
+provider = FarazGoldProvider()
+
 
 
 @gold_router.post(
@@ -22,3 +26,23 @@ def analyze_gold(
 ):
 
     return engine.analyze(data)
+
+
+
+@gold_router.get(
+    "/live",
+    response_model=GoldReport
+)
+def live_gold():
+
+    market_data = provider.fetch_gold_data()
+
+
+    gold_data = GoldData(
+        **market_data
+    )
+
+
+    return engine.analyze(
+        gold_data
+    )
