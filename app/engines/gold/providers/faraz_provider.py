@@ -1,17 +1,23 @@
 from datetime import datetime
 from typing import Dict
 
+from .faraz_scraper import FarazScraper
+from .normalizer import GoldNormalizer
+
 
 class FarazGoldProvider:
     """
     Faraz.io Gold Market Data Provider
 
-    Responsibility:
-    - Fetch market data
-    - Normalize fields
-    - Return standard GoldData format
+    Flow:
 
-    No analysis should be performed here.
+    FarazScraper
+          ↓
+    Raw Data
+          ↓
+    GoldNormalizer
+          ↓
+    GoldData Format
     """
 
 
@@ -19,52 +25,59 @@ class FarazGoldProvider:
 
         self.provider_name = "Faraz.io"
 
+        self.scraper = FarazScraper()
+
+        self.normalizer = GoldNormalizer()
+
 
 
     def fetch_gold_data(self) -> Dict:
         """
-        Fetch latest Iran gold market data.
-
-        Temporary mock response.
-        Real API integration will replace this.
+        Fetch and normalize gold market data.
         """
 
 
-        return {
-
-            # Global Market
-
-            "xau_usd": 3400,
-
-            "dxy": 101,
-
-            "us10y_yield": 4.3,
+        raw_data = self.scraper.fetch_page()
 
 
-            # Iran Market
+        # Temporary fallback protection
 
-            "usd_free_rate": 950000,
+        if isinstance(raw_data, dict) and "error" in raw_data:
 
-            "usd_change": 0.5,
+            return {
 
-            "gold18_price": 7200000,
+                "xau_usd": None,
 
-            "mesghal_price": 31200000,
+                "dxy": None,
 
-            "coin_emami": 85000000,
+                "us10y_yield": None,
 
-            "coin_bahar": 87000000,
+                "usd_free_rate": None,
 
-            "coin_bubble": 8,
+                "usd_change": None,
+
+                "gold18_price": None,
+
+                "mesghal_price": None,
+
+                "coin_emami": None,
+
+                "coin_bahar": None,
+
+                "coin_bubble": None,
+
+                "gold_daily_change": None,
+
+                "volume": None,
+
+                "timestamp": datetime.utcnow()
+
+            }
 
 
-            # Market Behavior
-
-            "gold_daily_change": 0.5,
-
-            "volume": 1000,
+        normalized_data = self.normalizer.normalize(
+            raw_data
+        )
 
 
-            "timestamp": datetime.utcnow()
-
-        }
+        return normalized_data
