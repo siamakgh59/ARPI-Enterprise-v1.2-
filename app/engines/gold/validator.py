@@ -8,13 +8,23 @@ class GoldValidator:
     """
 
 
+    # Core Gold Market Inputs
     GOLD_FIELDS = [
+
+        # Global
 
         "xau_usd",
 
-        "gold_daily_change",
+        "dxy",
 
-        "usd_irr",
+        "us10y_yield",
+
+
+        # Iran Market
+
+        "usd_free_rate",
+
+        "usd_change",
 
         "gold18_price",
 
@@ -26,15 +36,15 @@ class GoldValidator:
 
         "coin_bubble",
 
-        "gold_etf_flow",
 
-        "central_bank_gold_purchase",
+        # Behavior
 
-        "dxy",
+        "gold_daily_change",
 
-        "us10y_yield"
+        "volume"
 
     ]
+
 
 
     def validate(
@@ -53,25 +63,24 @@ class GoldValidator:
         validated_data = factors.copy()
 
 
-        # Detect missing values
+
+        # Missing Detection
 
         for field in self.GOLD_FIELDS:
 
-            value = factors.get(field)
-
-            if value is None:
+            if factors.get(field) is None:
 
                 missing_inputs.append(field)
 
 
 
-        # Validate prices
+        # Positive Values Validation
 
         positive_fields = [
 
             "xau_usd",
 
-            "usd_irr",
+            "usd_free_rate",
 
             "gold18_price",
 
@@ -101,7 +110,7 @@ class GoldValidator:
 
 
 
-        # Validate bubble
+        # Bubble Validation
 
         bubble = factors.get(
             "coin_bubble"
@@ -136,6 +145,8 @@ class GoldValidator:
 
 
 
+        # Quality Classification
+
         if invalid_inputs:
 
             data_quality = "INVALID"
@@ -144,7 +155,7 @@ class GoldValidator:
 
             data_quality = "GOOD"
 
-        elif valid_inputs >= 4:
+        elif valid_inputs >= 5:
 
             data_quality = "PARTIAL"
 
