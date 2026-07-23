@@ -5,26 +5,42 @@ from datetime import datetime
 
 class GoldData(BaseModel):
     """
-    Input data model for Gold Intelligence Engine
+    Gold Intelligence Engine Input Model
+    Iran + Global Gold Market
     """
 
+    # Global Market
+
     xau_usd: Optional[float] = None
-
-    usd_irr: Optional[float] = None
-
-    gold18_price: Optional[float] = None
-
-    coin_emami: Optional[float] = None
-
-    coin_bubble: Optional[float] = None
 
     dxy: Optional[float] = None
 
     us10y_yield: Optional[float] = None
 
-    gold_etf_flow: Optional[float] = None
 
-    central_bank_gold_purchase: Optional[float] = None
+    # Iran Market
+
+    usd_free_rate: Optional[float] = None
+
+    usd_change: Optional[float] = None
+
+    gold18_price: Optional[float] = None
+
+    mesghal_price: Optional[float] = None
+
+    coin_emami: Optional[float] = None
+
+    coin_bahar: Optional[float] = None
+
+    coin_bubble: Optional[float] = None
+
+
+    # Market Behavior
+
+    gold_daily_change: Optional[float] = None
+
+    volume: Optional[float] = None
+
 
     timestamp: Optional[datetime] = None
 
@@ -32,7 +48,7 @@ class GoldData(BaseModel):
 
 class GoldReport(BaseModel):
     """
-    Output report from Gold Intelligence Engine
+    Gold Intelligence Engine Output
     """
 
     engine: str
