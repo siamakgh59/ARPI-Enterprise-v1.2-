@@ -7,11 +7,12 @@ class FarazParser:
     """
     Parse Faraz.io Next.js payload
 
-    Input:
-        Raw HTML
+    Extracts data from:
+    - self.__next_f stream
+    - __NEXT_DATA__
 
     Output:
-        Dictionary compatible with GoldNormalizer
+    GoldNormalizer compatible dictionary
     """
 
 
@@ -45,9 +46,6 @@ class FarazParser:
         self,
         html: str
     ) -> Dict[str, Any]:
-        """
-        Extract embedded Next.js data
-        """
 
 
         result = {}
@@ -55,30 +53,28 @@ class FarazParser:
 
         try:
 
-            # Find Next.js stream payloads
 
-            matches = re.findall(
-                r'self\.__next_f\.push\((.*?)\)</script>',
-                html,
-                re.DOTALL
+            payloads = self._extract_next_payloads(
+                html
             )
 
 
             print(
                 "NEXT PAYLOAD COUNT:",
-                len(matches)
+                len(payloads)
             )
 
 
-            for block in matches:
+            for payload in payloads:
 
 
-                text = block.lower()
+                lower = payload.lower()
 
 
                 for key in self.SEARCH_KEYS:
 
-                    if key in text:
+
+                    if key in lower:
 
                         print(
                             "FOUND KEY:",
@@ -86,8 +82,18 @@ class FarazParser:
                         )
 
 
+                extracted = self._extract_numbers(
+                    payload
+                )
 
-            # Find __NEXT_DATA__ if exists
+
+                result.update(
+                    extracted
+                )
+
+
+
+            # Fallback: __NEXT_DATA__
 
             next_data = re.search(
 
@@ -103,17 +109,30 @@ class FarazParser:
             if next_data:
 
 
-                json_data = json.loads(
-                    next_data.group(1)
-                )
+                try:
 
-
-                result.update(
-                    self._extract_values(
-                        json_data
+                    data = json.loads(
+                        next_data.group(1)
                     )
-                )
 
+
+                    result.update(
+                        self._extract_recursive(
+                            data
+                        )
+                    )
+
+
+                except Exception:
+
+                    pass
+
+
+
+            print(
+                "PARSER RESULT:",
+                result
+            )
 
 
             return result
@@ -133,65 +152,146 @@ class FarazParser:
 
 
 
-    def _extract_values(
+    def _extract_next_payloads(
         self,
-        obj
+        html: str
+    ):
+
+
+        matches = re.findall(
+
+            r'self\.__next_f\.push\((.*?)\)</script>',
+
+            html,
+
+            re.DOTALL
+
+        )
+
+
+        return matches
+
+
+
+    def _extract_numbers(
+        self,
+        text: str
     ) -> Dict:
 
 
         values = {}
 
 
-        if isinstance(
-            obj,
-            dict
-        ):
+        patterns = {
+
+            "xau_usd":
+
+                r'(?:xau|ounce)[^0-9]{0,30}([0-9]{3,5})',
+
+
+            "gold18_price":
+
+                r'(?:18|gold18)[^0-9]{0,30}([0-9]{6,12})',
+
+
+            "mesghal_price":
+
+                r'(?:mesghal)[^0-9]{0,30}([0-9]{6,12})',
+
+
+            "coin_emami":
+
+                r'(?:emami)[^0-9]{0,30}([0-9]{6,12})',
+
+
+            "coin_bahar":
+
+                r'(?:bahar)[^0-9]{0,30}([0-9]{6,12})',
+
+
+            "usd_free_rate":
+
+                r'(?:usd|dollar)[^0-9]{0,30}([0-9]{4,8})'
+
+        }
+
+
+
+        for name, pattern in patterns.items():
+
+
+            match = re.search(
+
+                pattern,
+
+                text,
+
+                re.IGNORECASE
+
+            )
+
+
+            if match:
+
+
+                try:
+
+                    values[name] = float(
+                        match.group(1)
+                    )
+
+                except:
+
+                    pass
+
+
+
+        return values
+
+
+
+    def _extract_recursive(
+        self,
+        obj
+    ) -> Dict:
+
+
+        result = {}
+
+
+        if isinstance(obj, dict):
 
 
             for key, value in obj.items():
 
-
-                key_lower = key.lower()
-
-
-                if any(
-                    x in key_lower
-                    for x in self.SEARCH_KEYS
+                if isinstance(
+                    value,
+                    (int, float)
                 ):
 
-                    if isinstance(
-                        value,
-                        (int, float)
-                    ):
-
-                        values[key] = value
-
+                    result[key] = value
 
 
                 else:
 
-                    values.update(
-                        self._extract_values(
+                    result.update(
+                        self._extract_recursive(
                             value
                         )
                     )
 
 
 
-        elif isinstance(
-            obj,
-            list
-        ):
+        elif isinstance(obj, list):
 
 
             for item in obj:
 
-                values.update(
-                    self._extract_values(
+                result.update(
+                    self._extract_recursive(
                         item
                     )
                 )
 
 
-
-        return values
+        return result
