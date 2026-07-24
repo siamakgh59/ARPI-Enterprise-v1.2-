@@ -4,14 +4,21 @@ from typing import Dict, Any
 
 
 class FarazParser:
-    """
-    Faraz.io Gold Parser V23
 
-    Stable parser based on Next.js payload structures.
     """
+    Faraz Gold Parser V24
 
-    def __init__(self):
-        self.result = {}
+    Supports:
+    - market gold-currency page
+    - gold18 detail page
+
+    Extract:
+    - mesghal_price
+    - usd_free_rate
+    - gold18_price
+    - volume
+    - daily change
+    """
 
 
     def parse(
@@ -20,13 +27,14 @@ class FarazParser:
         source: str = "market"
     ) -> Dict[str, Any]:
 
+
         result = {}
 
+        print("######## FARAZ PARSER V24 DEBUG ########")
+        print("SOURCE:", source)
+
+
         try:
-
-            print("######## FARAZ PARSER V23 DEBUG ########")
-            print("SOURCE:", source)
-
 
             payloads = re.findall(
                 r'self\.__next_f\.push\((.*?)\)</script>',
@@ -41,49 +49,48 @@ class FarazParser:
             )
 
 
-            for index, payload in enumerate(payloads):
+            for i,payload in enumerate(payloads):
 
 
-                if source == "market":
-
-                    if '"rows":[' in payload:
-
-                        print(
-                            "MARKET ROW PAYLOAD:",
-                            index
-                        )
-
-
-                        rows = self.extract_market_rows(
-                            payload
-                        )
+                if (
+                    "rows" in payload
+                    or
+                    "marketItem" in payload
+                    or
+                    "lastPrice" in payload
+                ):
 
 
-                        print(
-                            "ROWS FOUND:",
-                            len(rows)
-                        )
+                    print(
+                        "ACTIVE PAYLOAD:",
+                        i
+                    )
 
 
-                        result.update(
-                            self.map_rows(rows)
-                        )
-
-
-
-                if source == "gold18":
-
-
-                    value = self.extract_gold18(
+                    decoded = self.decode_payload(
                         payload
                     )
 
 
-                    if value:
+                    if decoded:
 
-                        result[
-                            "gold18_price"
-                        ] = value
+
+                        if source=="market":
+
+                            data = self.extract_market(
+                                decoded
+                            )
+
+                            result.update(data)
+
+
+                        if source=="gold18":
+
+                            data = self.extract_gold18(
+                                decoded
+                            )
+
+                            result.update(data)
 
 
 
@@ -112,102 +119,274 @@ class FarazParser:
 
 
 
-    def fix_encoding(
-        self,
-        text
-    ):
-
-        try:
-
-            if "Ø" in text or "Ù" in text:
-
-                return (
-                    text
-                    .encode("latin1")
-                    .decode("utf-8")
-                )
-
-        except:
-
-            pass
-
-
-        return text
-
-
-
-    def extract_market_rows(
+    def decode_payload(
         self,
         payload
     ):
 
 
-        rows = []
-
-
         try:
 
-            match = re.search(
-                r'"rows":(\[.*?\]),"currentPage"',
-                payload,
-                re.DOTALL
+            start = payload.find(
+                "{"
             )
 
 
-            if not match:
-
-                return rows
-
-
-
-            raw = match.group(1)
+            end = payload.rfind(
+                "}"
+            )
 
 
-            data = json.loads(
+            if start==-1 or end==-1:
+
+                return None
+
+
+            raw = payload[start:end+1]
+
+
+            raw = (
                 raw
+                .replace('\\"','"')
             )
 
 
-            for item in data:
-
-                rows.append({
-
-                    "symbol":
-                    item.get(
-                        "symbol",
-                        ""
-                    ),
-
-                    "name":
-                    self.fix_encoding(
-                        item.get(
-                            "persianName",
-                            ""
-                        )
-                    ),
-
-                    "price":
-                    item.get(
-                        "lastPrice"
-                    ),
-
-                    "change":
-                    item.get(
-                        "change"
-                    )
-
-                })
+            return raw
 
 
         except Exception as e:
 
             print(
-                "ROW PARSE ERROR:",
+                "DECODE ERROR",
                 e
             )
 
+            return None
 
-        return rows
+
+
+
+    def extract_market(
+        self,
+        text
+    ):
+
+
+        result={}
+
+
+        try:
+
+
+            rows_match = re.search(
+                r'"rows":(\[.*?\]),"currentPage"',
+                text,
+                re.DOTALL
+            )
+
+
+            if not rows_match:
+
+                return {}
+
+
+            rows_json = rows_match.group(1)
+
+
+            rows_json = (
+                rows_json
+                .replace('\\"','"')
+            )
+
+
+            rows = json.loads(
+                rows_json
+            )
+
+
+            print(
+                "ROWS:",
+                len(rows)
+            )
+
+
+
+            for row in rows:
+
+
+                symbol = (
+                    row.get(
+                        "symbol",
+                        ""
+                    )
+                    .lower()
+                )
+
+
+                name = row.get(
+                    "persianName",
+                    ""
+                )
+
+
+                price = self.clean(
+                    row.get(
+                        "lastPrice"
+                    )
+                )
+
+
+                print(
+                    "ROW:",
+                    symbol,
+                    name,
+                    price
+                )
+
+
+                if (
+                    "abshode" in symbol
+                    or
+                    "آبشده" in name
+                    or
+                    "مظنه" in name
+                ):
+
+                    result[
+                        "mesghal_price"
+                    ] = price
+
+
+
+                if (
+                    "harat" in symbol
+                    or
+                    "usd" in symbol
+                ):
+
+                    result[
+                        "usd_free_rate"
+                    ] = price
+
+
+
+                if (
+                    "emami" in symbol
+                ):
+
+                    result[
+                        "coin_emami"
+                    ] = price
+
+
+
+                if (
+                    "bahar" in symbol
+                ):
+
+                    result[
+                        "coin_bahar"
+                    ] = price
+
+
+
+                if (
+                    "changePercent" in row
+                ):
+
+                    result[
+                        "gold_daily_change"
+                    ] = row.get(
+                        "changePercent"
+                    )
+
+
+            return result
+
+
+
+        except Exception as e:
+
+            print(
+                "MARKET ERROR:",
+                e
+            )
+
+            return {}
+
+
+
+
+    def extract_gold18(
+        self,
+        text
+    ):
+
+
+        result={}
+
+
+        try:
+
+
+            price = re.search(
+                r'"lastPrice\\?":?\\?"?([0-9]+)',
+                text
+            )
+
+
+            if price:
+
+                result[
+                    "gold18_price"
+                ] = float(
+                    price.group(1)
+                )
+
+
+            volume = re.search(
+                r'"volume\\?":?\\?"?([0-9]+)',
+                text
+            )
+
+
+            if volume:
+
+                result[
+                    "volume"
+                ] = float(
+                    volume.group(1)
+                )
+
+
+            change = re.search(
+                r'"changePercent\\?":?\\?"?([-0-9\.]+)',
+                text
+            )
+
+
+            if change:
+
+                result[
+                    "gold_daily_change"
+                ] = float(
+                    change.group(1)
+                )
+
+
+            return result
+
+
+
+        except Exception as e:
+
+            print(
+                "GOLD18 ERROR:",
+                e
+            )
+
+            return {}
+
 
 
 
@@ -216,166 +395,15 @@ class FarazParser:
         value
     ):
 
+
         try:
-
-            if value is None:
-                return None
-
 
             return float(
                 str(value)
-                .replace(
-                    ",",
-                    ""
-                )
+                .replace(",","")
             )
 
 
         except:
 
             return None
-
-
-
-    def map_rows(
-        self,
-        rows
-    ):
-
-
-        data = {}
-
-
-        for row in rows:
-
-
-            symbol = (
-                row["symbol"]
-                .lower()
-            )
-
-
-            name = (
-                row["name"]
-                .lower()
-            )
-
-
-            price = self.clean(
-                row["price"]
-            )
-
-
-            change = self.clean(
-                row["change"]
-            )
-
-
-
-            print(
-                "ROW:",
-                symbol,
-                name,
-                price
-            )
-
-
-
-            if "abshode" in symbol:
-
-                data[
-                    "mesghal_price"
-                ] = price
-
-
-
-            if (
-                "haratnaghdi" in symbol
-                or
-                "usd" in symbol
-            ):
-
-                data[
-                    "usd_free_rate"
-                ] = price
-
-
-
-            if "emami" in symbol:
-
-                data[
-                    "coin_emami"
-                ] = price
-
-
-
-            if "bahar" in symbol:
-
-                data[
-                    "coin_bahar"
-                ] = price
-
-
-
-            if change is not None:
-
-                data[
-                    "gold_daily_change"
-                ] = change
-
-
-
-        return data
-
-
-
-    def extract_gold18(
-        self,
-        payload
-    ):
-
-
-        try:
-
-
-            match = re.search(
-                r'"marketItem":\{(.*?)\}',
-                payload,
-                re.DOTALL
-            )
-
-
-            if not match:
-
-                return None
-
-
-
-            block = match.group(1)
-
-
-
-            price = re.search(
-                r'"price":(\d+)',
-                block
-            )
-
-
-            if price:
-
-                return float(
-                    price.group(1)
-                )
-
-
-
-        except Exception as e:
-
-
-            print(
-                "GOLD18 ERROR:",
-                e
-            )
-
-
-        return None
