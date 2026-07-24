@@ -1,19 +1,26 @@
 import re
+import json
 from typing import Dict, Any
 
 
 class FarazParser:
     """
-    Faraz.io Gold Parser V13
+    Faraz.io Gold Parser V14 Stable
 
     Responsibilities:
-    - Parse Faraz Next.js payloads
-    - Extract:
-        * Mesghal (Muzaneh Abshode)
-        * USD Free Rate
-        * Gold 18K price
 
-    Designed for ARPI Gold Engine.
+    - Parse Next.js payloads
+    - Extract market rows
+    - Extract 18K gold price
+    - Normalize Faraz data for ARPI Gold Engine
+
+    Supported outputs:
+
+    mesghal_price
+    gold18_price
+    usd_free_rate
+    coin_emami
+    coin_bahar
     """
 
     def __init__(self):
@@ -32,7 +39,7 @@ class FarazParser:
         try:
 
             print(
-                "######## FARAZ PARSER V13 DEBUG ########"
+                "######## FARAZ PARSER V14 DEBUG ########"
             )
 
             print(
@@ -41,10 +48,8 @@ class FarazParser:
             )
 
 
-            payloads = re.findall(
-                r'self\.__next_f\.push\((.*?)\)</script>',
-                html,
-                re.DOTALL
+            payloads = self.extract_payloads(
+                html
             )
 
 
@@ -56,18 +61,29 @@ class FarazParser:
 
             for index, payload in enumerate(payloads):
 
+                decoded = self.decode_payload(
+                    payload
+                )
+
 
                 if source == "market":
 
 
                     if (
-                        "rows" in payload
+                        "rows" in decoded
                         or
-                        "lastPrice" in payload
+                        "lastPrice" in decoded
                     ):
 
+
                         rows = self.extract_rows(
-                            payload
+                            decoded
+                        )
+
+
+                        print(
+                            "MARKET PAYLOAD:",
+                            index
                         )
 
 
@@ -77,30 +93,37 @@ class FarazParser:
                         )
 
 
-                        mapped = self.map_rows(
+                        market_data = self.map_rows(
                             rows
                         )
 
 
                         result.update(
-                            mapped
+                            market_data
                         )
+
 
 
                 if source == "gold18":
 
 
-                    value = self.extract_gold18(
-                        payload
+                    gold18 = self.extract_gold18(
+                        decoded
                     )
 
 
-                    if value:
+                    if gold18:
+
 
                         result[
                             "gold18_price"
-                        ] = value
+                        ] = gold18
 
+
+
+            result = self.validate_result(
+                result
+            )
 
 
             print(
@@ -120,43 +143,66 @@ class FarazParser:
 
         except Exception as e:
 
+
             print(
                 "PARSER ERROR:",
-                e
+                str(e)
             )
+
 
             return {}
 
 
 
-    def fix_encoding(
+    def extract_payloads(
         self,
-        text: str
-    ) -> str:
+        html: str
+    ):
 
+        return re.findall(
+
+            r'self\.__next_f\.push\((.*?)\)</script>',
+
+            html,
+
+            re.DOTALL
+
+        )
+
+
+
+    def decode_payload(
+        self,
+        payload: str
+    ):
+
+        """
+        Decode Next.js escaped payload
+        """
 
         try:
 
-            if "Ù" in text:
-
-                return (
-                    text
-                    .encode("latin1")
-                    .decode("utf-8")
+            payload = (
+                payload
+                .encode()
+                .decode(
+                    "unicode_escape"
                 )
+            )
+
 
         except:
 
             pass
 
 
-        return text
+        return payload
 
 
 
     def extract_rows(
         self,
-        payload: str
+        text: str
     ):
 
 
@@ -165,40 +211,38 @@ class FarazParser:
 
         pattern = (
 
-            r'"symbol":"(.*?)".*?'
-            r'"persianName":"(.*?)".*?'
-            r'"lastPrice":("?)([\d\.]+)\3'
+            r'"symbol"\s*:\s*"([^"]+)".*?'
+
+            r'"persianName"\s*:\s*"([^"]+)".*?'
+
+            r'"lastPrice"\s*:\s*"?([\d\.]+)"?'
 
         )
 
 
         matches = re.findall(
+
             pattern,
-            payload,
+
+            text,
+
             re.DOTALL
+
         )
 
 
-        for item in matches:
 
-
-            price = self.clean(
-                item[3]
-            )
-
-
-            if price is None:
-                continue
+        for symbol, name, price in matches:
 
 
             rows.append({
 
                 "symbol":
-                    item[0],
+                    symbol,
 
                 "name":
                     self.fix_encoding(
-                        item[1]
+                        name
                     ),
 
                 "price":
@@ -211,71 +255,58 @@ class FarazParser:
 
 
 
+    def fix_encoding(
+        self,
+        text
+    ):
+
+        try:
+
+            if "Ù" in text:
+
+                return (
+
+                    text
+                    .encode(
+                        "latin1"
+                    )
+                    .decode(
+                        "utf-8"
+                    )
+
+                )
+
+
+        except:
+
+            pass
+
+
+        return text
+
+
+
     def clean(
         self,
         value
     ):
 
-
         try:
 
-            value = float(
+            return float(
+
                 str(value)
-                .replace(",","")
+                .replace(
+                    ",",
+                    ""
+                )
+
             )
-
-
-            return value
 
 
         except:
 
             return None
-
-
-
-    def validate_price(
-        self,
-        key,
-        value
-    ):
-
-
-        if value is None:
-
-            return False
-
-
-
-        # جلوگیری از Fragment اشتباه
-        if key == "mesghal_price":
-
-
-            if value < 1_000_000:
-
-                return False
-
-
-
-        if key == "usd_free_rate":
-
-
-            if value < 10_000:
-
-                return False
-
-
-
-        if key == "gold18_price":
-
-
-            if value < 1_000_000:
-
-                return False
-
-
-
-        return True
 
 
 
@@ -286,7 +317,6 @@ class FarazParser:
 
 
         data = {}
-
 
 
         for row in rows:
@@ -304,7 +334,9 @@ class FarazParser:
             )
 
 
-            price = row["price"]
+            price = self.clean(
+                row["price"]
+            )
 
 
 
@@ -317,9 +349,7 @@ class FarazParser:
 
 
 
-            # --------------------------
             # مظنه آبشده جهانی
-            # --------------------------
 
             if (
 
@@ -334,10 +364,7 @@ class FarazParser:
             ):
 
 
-                if self.validate_price(
-                    "mesghal_price",
-                    price
-                ):
+                if price and price > 1000000:
 
                     data[
                         "mesghal_price"
@@ -345,11 +372,9 @@ class FarazParser:
 
 
 
-            # --------------------------
-            # دلار آزاد
-            # --------------------------
+            # دلار
 
-            if (
+            elif (
 
                 "usd" in symbol
                 or
@@ -360,15 +385,33 @@ class FarazParser:
             ):
 
 
-                if self.validate_price(
-                    "usd_free_rate",
-                    price
-                ):
-
+                if price and price > 10000:
 
                     data[
                         "usd_free_rate"
                     ] = price
+
+
+
+            # سکه امامی
+
+            elif "emami" in symbol:
+
+
+                data[
+                    "coin_emami"
+                ] = price
+
+
+
+            # سکه بهار
+
+            elif "bahar" in symbol:
+
+
+                data[
+                    "coin_bahar"
+                ] = price
 
 
 
@@ -378,20 +421,23 @@ class FarazParser:
 
     def extract_gold18(
         self,
-        payload
+        text
     ):
 
 
         patterns = [
 
 
-            r'"lastPrice":("?)([\d\.]+)\1',
+            r'"lastPrice"\s*:\s*"?([0-9\.]+)"?',
 
 
-            r'"price":("?)([\d\.]+)\1',
+            r'"price"\s*:\s*"?([0-9\.]+)"?',
 
 
-            r'"value":("?)([\d\.]+)\1'
+            r'"value"\s*:\s*"?([0-9\.]+)"?',
+
+
+            r'"amount"\s*:\s*"?([0-9\.]+)"?'
 
 
         ]
@@ -401,33 +447,31 @@ class FarazParser:
         for pattern in patterns:
 
 
-            matches = re.findall(
+            match = re.search(
+
                 pattern,
-                payload
+
+                text
+
             )
 
 
-            for match in matches:
-
-
-                if isinstance(match, tuple):
-
-                    value = match[-1]
-
-                else:
-
-                    value = match
-
+            if match:
 
 
                 value = self.clean(
-                    value
+
+                    match.group(1)
+
                 )
 
 
-                if self.validate_price(
-                    "gold18_price",
+                if (
+
                     value
+                    and
+                    value > 1000000
+
                 ):
 
                     return value
@@ -435,3 +479,56 @@ class FarazParser:
 
 
         return None
+
+
+
+    def validate_result(
+        self,
+        data
+    ):
+
+
+        validated = {}
+
+
+
+        for key, value in data.items():
+
+
+            if value is None:
+
+                continue
+
+
+
+            if key == "mesghal_price":
+
+                if value > 1000000:
+
+                    validated[key] = value
+
+
+
+            elif key == "gold18_price":
+
+                if value > 1000000:
+
+                    validated[key] = value
+
+
+
+            elif key == "usd_free_rate":
+
+                if value > 10000:
+
+                    validated[key] = value
+
+
+
+            else:
+
+                validated[key] = value
+
+
+
+        return validated
