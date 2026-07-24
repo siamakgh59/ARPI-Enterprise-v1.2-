@@ -4,32 +4,26 @@ from typing import Dict, Any
 
 class FarazParser:
     """
-    Faraz.io Gold Parser V15 Stable
+    Faraz.io Gold Parser V16
 
-    Features:
+    Stable Parser for ARPI Gold Intelligence Engine
 
-    - Parse Faraz Next.js payloads
-    - Extract market rows
-    - Extract 18K gold price
+    Supports:
+
+    - Faraz Next.js self.__next_f payloads
+    - Market rows extraction
+    - Gold18 detail extraction
     - Unit normalization
-    - Handle compressed prices:
-        42   -> 42,000,000
-        192  -> 192,000
+    - Iranian gold market symbols
 
     Output:
 
-    mesghal_price
     gold18_price
+    mesghal_price
     usd_free_rate
     coin_emami
     coin_bahar
     """
-
-    def __init__(self):
-
-        self.result = {}
-
-
 
     def parse(
         self,
@@ -39,11 +33,10 @@ class FarazParser:
 
         result = {}
 
-
         try:
 
             print(
-                "######## FARAZ PARSER V15 DEBUG ########"
+                "######## FARAZ PARSER V16 DEBUG ########"
             )
 
             print(
@@ -52,8 +45,10 @@ class FarazParser:
             )
 
 
-            payloads = self.extract_payloads(
-                html
+            payloads = re.findall(
+                r'self\.__next_f\.push\((.*?)\)</script>',
+                html,
+                re.DOTALL
             )
 
 
@@ -64,11 +59,6 @@ class FarazParser:
 
 
             for index, payload in enumerate(payloads):
-
-
-                payload = self.decode_payload(
-                    payload
-                )
 
 
                 if source == "market":
@@ -90,7 +80,6 @@ class FarazParser:
                             "MARKET PAYLOAD:",
                             index
                         )
-
 
                         print(
                             "ROWS FOUND:",
@@ -130,7 +119,6 @@ class FarazParser:
                 result
             )
 
-
             print(
                 "####################################"
             )
@@ -145,51 +133,11 @@ class FarazParser:
 
             print(
                 "PARSER ERROR:",
-                str(e)
+                e
             )
 
 
             return {}
-
-
-
-    def extract_payloads(
-        self,
-        html: str
-    ):
-
-
-        return re.findall(
-
-            r'self\.__next_f\.push\((.*?)\)</script>',
-
-            html,
-
-            re.DOTALL
-
-        )
-
-
-
-    def decode_payload(
-        self,
-        payload: str
-    ):
-
-
-        try:
-
-            return (
-                payload
-                .encode()
-                .decode(
-                    "unicode_escape"
-                )
-            )
-
-        except:
-
-            return payload
 
 
 
@@ -205,22 +153,16 @@ class FarazParser:
         pattern = (
 
             r'"symbol"\s*:\s*"([^"]+)".*?'
-
             r'"persianName"\s*:\s*"([^"]+)".*?'
-
             r'"lastPrice"\s*:\s*"?([0-9\.]+)"?'
 
         )
 
 
         matches = re.findall(
-
             pattern,
-
             text,
-
             re.DOTALL
-
         )
 
 
@@ -234,9 +176,7 @@ class FarazParser:
                     symbol,
 
                 "name":
-                    self.fix_encoding(
-                        name
-                    ),
+                    name,
 
                 "price":
                     price
@@ -245,38 +185,6 @@ class FarazParser:
 
 
         return rows
-
-
-
-    def fix_encoding(
-        self,
-        text
-    ):
-
-
-        try:
-
-            if "Ù" in text:
-
-                return (
-
-                    text
-                    .encode(
-                        "latin1"
-                    )
-                    .decode(
-                        "utf-8"
-                    )
-
-                )
-
-
-        except:
-
-            pass
-
-
-        return text
 
 
 
@@ -289,17 +197,15 @@ class FarazParser:
         try:
 
             return float(
-
                 str(value)
                 .replace(
                     ",",
                     ""
                 )
-
             )
 
-
         except:
+
 
             return None
 
@@ -308,22 +214,8 @@ class FarazParser:
     def normalize_price(
         self,
         value,
-        price_type
+        kind
     ):
-
-
-        """
-        Faraz sometimes returns compressed values.
-
-        Example:
-
-        mesghal:
-        42 -> 42,000,000
-
-        usd:
-        192 -> 192,000
-
-        """
 
 
         if value is None:
@@ -331,26 +223,31 @@ class FarazParser:
             return None
 
 
-
         value = float(value)
 
 
 
-        if price_type == "mesghal":
+        #
+        # Faraz compressed units
+        #
+
+        # مظنه
+        if kind == "mesghal":
+
+
+            if value < 1000000:
+
+                value *= 1000000
+
+
+
+        # دلار
+        elif kind == "usd":
 
 
             if value < 1000:
 
-                return value * 1000000
-
-
-
-        if price_type == "usd":
-
-
-            if value < 1000:
-
-                return value * 1000
+                value *= 1000
 
 
 
@@ -388,6 +285,7 @@ class FarazParser:
             )
 
 
+
             print(
                 "ROW:",
                 symbol,
@@ -397,7 +295,9 @@ class FarazParser:
 
 
 
+            #
             # مظنه آبشده جهانی
+            #
 
             if (
 
@@ -410,7 +310,7 @@ class FarazParser:
             ):
 
 
-                price = self.normalize_price(
+                normalized = self.normalize_price(
 
                     price,
 
@@ -419,21 +319,24 @@ class FarazParser:
                 )
 
 
-                if price:
+                if normalized:
+
 
                     data[
                         "mesghal_price"
-                    ] = price
+                    ] = normalized
 
 
 
-
+            #
             # دلار آزاد
-
+            #
 
             elif (
 
                 "usd" in symbol
+                or
+                "hrt" in symbol
                 or
                 "dollar" in symbol
                 or
@@ -442,7 +345,7 @@ class FarazParser:
             ):
 
 
-                price = self.normalize_price(
+                normalized = self.normalize_price(
 
                     price,
 
@@ -451,17 +354,25 @@ class FarazParser:
                 )
 
 
-                if price:
+                print(
+                    "USD NORMALIZED:",
+                    normalized
+                )
+
+
+                if normalized:
+
 
                     data[
                         "usd_free_rate"
-                    ] = price
+                    ] = normalized
 
 
 
 
+            #
             # سکه امامی
-
+            #
 
             elif "emami" in symbol:
 
@@ -472,9 +383,9 @@ class FarazParser:
 
 
 
-
+            #
             # سکه بهار
-
+            #
 
             elif "bahar" in symbol:
 
@@ -483,6 +394,12 @@ class FarazParser:
                     "coin_bahar"
                 ] = price
 
+
+
+        print(
+            "MAP RESULT:",
+            data
+        )
 
 
         return data
@@ -500,12 +417,9 @@ class FarazParser:
 
             r'"lastPrice"\s*:\s*"?([0-9\.]+)"?',
 
-
             r'"price"\s*:\s*"?([0-9\.]+)"?',
 
-
             r'"value"\s*:\s*"?([0-9\.]+)"?'
-
 
         ]
 
@@ -540,6 +454,7 @@ class FarazParser:
                     value > 1000000
 
                 ):
+
 
                     return value
 
