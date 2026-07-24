@@ -1,27 +1,24 @@
 import re
 import json
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 
 class FarazParser:
-
     """
-    Faraz Gold Parser V25
+    Faraz Parser V26 Stable
 
-    Supports:
-    - Faraz gold-currency market
-    - Gold 18 detail page
+    هدف:
+    استخراج پایدار اطلاعات طلا از Payload های Next.js Faraz
 
-    Extract:
+    استخراج:
+    - gold18_price
     - mesghal_price
     - usd_free_rate
     - coin_emami
     - coin_bahar
-    - gold18_price
+    - gold_daily_change
     - volume
-    - daily change
     """
-
 
     def parse(
         self,
@@ -29,20 +26,16 @@ class FarazParser:
         source: str = "market"
     ) -> Dict[str, Any]:
 
-        result = {}
-
-        print("######## FARAZ PARSER V25 DEBUG ########")
+        print("######## FARAZ PARSER V26 DEBUG ########")
         print("SOURCE:", source)
 
+        result = {}
 
         try:
 
-            payloads = re.findall(
-                r'self\.__next_f\.push$begin:math:text$\(\.\*\?\)$end:math:text$</script>',
-                html,
-                re.DOTALL
+            payloads = self.extract_payloads(
+                html
             )
-
 
             print(
                 "PAYLOAD COUNT:",
@@ -52,58 +45,49 @@ class FarazParser:
 
             for index, payload in enumerate(payloads):
 
+                decoded = self.decode_payload(
+                    payload
+                )
 
-                if source == "market":
+                if not decoded:
+                    continue
 
 
-                    if (
-                        "rows" in payload
-                    ):
+                print(
+                    "ACTIVE PAYLOAD:",
+                    index,
+                    "LENGTH:",
+                    len(decoded)
+                )
 
 
-                        print(
-                            "MARKET PAYLOAD:",
-                            index
+                objects = self.extract_objects(
+                    decoded
+                )
+
+
+                print(
+                    "OBJECT COUNT:",
+                    len(objects)
+                )
+
+
+                for obj in objects:
+
+
+                    if source == "market":
+
+                        self.scan_market_object(
+                            obj,
+                            result
                         )
 
 
-                        decoded = self.decode(
-                            payload
-                        )
+                    elif source == "gold18":
 
-
-                        if decoded:
-
-
-                            data = self.extract_rows(
-                                decoded
-                            )
-
-
-                            result.update(
-                                data
-                            )
-
-
-
-                elif source == "gold18":
-
-
-                    decoded = self.decode(
-                        payload
-                    )
-
-
-                    if decoded:
-
-
-                        data = self.extract_gold18(
-                            decoded
-                        )
-
-
-                        result.update(
-                            data
+                        self.scan_gold18_object(
+                            obj,
+                            result
                         )
 
 
@@ -113,14 +97,6 @@ class FarazParser:
                 result
             )
 
-            print(
-                "################################"
-            )
-
-
-            return result
-
-
 
         except Exception as e:
 
@@ -129,240 +105,285 @@ class FarazParser:
                 e
             )
 
-            return {}
+
+        print(
+            "################################"
+        )
+
+
+        return result
 
 
 
+    # -------------------------------
+    # Extract Next.js streams
+    # -------------------------------
 
-    def decode(
+    def extract_payloads(
         self,
-        payload
+        html: str
+    ) -> List[str]:
+
+        return re.findall(
+            r'self\.__next_f\.push\((.*?)\)</script>',
+            html,
+            re.DOTALL
+        )
+
+
+
+    # -------------------------------
+    # Decode escaped payload
+    # -------------------------------
+
+    def decode_payload(
+        self,
+        payload: str
     ):
 
         try:
 
-            text = (
-                payload
-                .replace(
-                    '\\"',
-                    '"'
-                )
+            text = payload
+
+
+            text = text.replace(
+                '\\"',
+                '"'
             )
+
+
+            text = text.replace(
+                '\\\\',
+                '\\'
+            )
+
 
             return text
 
 
         except:
 
-            return payload
+            return None
 
 
 
+    # -------------------------------
+    # Find JSON objects recursively
+    # -------------------------------
 
-    def extract_rows(
+    def extract_objects(
         self,
-        text
-    ):
+        text: str
+    ) -> List[dict]:
 
-        result = {}
-
-        try:
+        objects = []
 
 
-            blocks = re.findall(
-                r'"rows":($begin:math:display$\.\*\?$end:math:display$)',
-                text,
-                re.DOTALL
-            )
+        matches = re.findall(
+            r'\{.*?\}',
+            text,
+            re.DOTALL
+        )
 
 
-            print(
-                "ROWS BLOCKS:",
-                len(blocks)
-            )
+        for item in matches:
 
+            try:
 
-            all_rows = []
-
-
-            for block in blocks:
-
-                try:
-
-                    rows = json.loads(
-                        block
-                    )
-
-                    all_rows.extend(
-                        rows
-                    )
-
-
-                except:
-
-                    continue
-
-
-
-            print(
-                "TOTAL ROWS:",
-                len(all_rows)
-            )
-
-
-
-            for row in all_rows:
-
-
-                symbol = (
-                    row.get(
-                        "symbol",
-                        ""
-                    )
-                    .lower()
+                obj = json.loads(
+                    item
                 )
 
+                if isinstance(
+                    obj,
+                    dict
+                ):
 
-                name = row.get(
+                    objects.append(
+                        obj
+                    )
+
+
+            except:
+
+                continue
+
+
+        return objects
+
+
+
+    # -------------------------------
+    # Market scanner
+    # -------------------------------
+
+    def scan_market_object(
+        self,
+        obj: dict,
+        result: Dict
+    ):
+
+
+        if "rows" not in obj:
+
+            return
+
+
+        rows = obj.get(
+            "rows"
+        )
+
+
+        if not isinstance(
+            rows,
+            list
+        ):
+
+            return
+
+
+
+        print(
+            "ROWS FOUND:",
+            len(rows)
+        )
+
+
+        for row in rows:
+
+
+            symbol = str(
+                row.get(
+                    "symbol",
+                    ""
+                )
+            ).lower()
+
+
+            name = str(
+                row.get(
                     "persianName",
                     ""
                 )
+            )
 
 
-                price = self.clean(
-                    row.get(
-                        "lastPrice"
-                    )
+            price = self.clean(
+                row.get(
+                    "lastPrice"
                 )
+            )
 
 
-                change = row.get(
-                    "changePercent"
-                )
-
-
-                print(
-                    "ROW:",
-                    symbol,
-                    name,
-                    price
-                )
-
-
-
-                # مظنه
-
-                if (
-                    "abshode" in symbol
-                    or
-                    "آبشده" in name
-                    or
-                    "مظنه" in name
-                ):
-
-                    result[
-                        "mesghal_price"
-                    ] = price
-
-
-
-                # دلار
-
-                if (
-                    "usd" in symbol
-                    or
-                    "harat" in symbol
-                ):
-
-                    result[
-                        "usd_free_rate"
-                    ] = price
-
-
-
-                # سکه امامی
-
-                if (
-                    "emami" in symbol
-                    or
-                    "emami" in name.lower()
-                ):
-
-                    result[
-                        "coin_emami"
-                    ] = price
-
-
-
-                # سکه بهار آزادی
-
-                if (
-                    "bahar" in symbol
-                    or
-                    "bahar" in name.lower()
-                ):
-
-                    result[
-                        "coin_bahar"
-                    ] = price
-
-
-
-                if change:
-
-                    try:
-
-                        result[
-                            "gold_daily_change"
-                        ] = float(
-                            str(change)
-                            .replace(
-                                "%",
-                                ""
-                            )
-                            .replace(
-                                "+",
-                                ""
-                            )
-                        )
-
-                    except:
-
-                        pass
-
-
-
-            return result
-
-
-
-        except Exception as e:
+            change = row.get(
+                "changePercent"
+            )
 
 
             print(
-                "ROWS ERROR:",
-                e
+                "ROW:",
+                symbol,
+                price
             )
 
-            return {}
+
+
+            # مظنه
+
+            if (
+                "abshode" in symbol
+                or
+                "مظنه" in name
+                or
+                "آبشده" in name
+            ):
+
+                result[
+                    "mesghal_price"
+                ] = price
 
 
 
+            # دلار آزاد
 
-    def extract_gold18(
+            if (
+                "harat" in symbol
+                or
+                "usd" in symbol
+            ):
+
+                result[
+                    "usd_free_rate"
+                ] = price
+
+
+
+            # سکه امامی
+
+            if (
+                "emami" in symbol
+            ):
+
+                result[
+                    "coin_emami"
+                ] = price
+
+
+
+            # سکه بهار
+
+            if (
+                "bahar" in symbol
+            ):
+
+                result[
+                    "coin_bahar"
+                ] = price
+
+
+
+            if change:
+
+                try:
+
+                    result[
+                        "gold_daily_change"
+                    ] = float(
+                        str(change)
+                        .replace(
+                            "%",
+                            ""
+                        )
+                        .replace(
+                            "+",
+                            ""
+                        )
+                    )
+
+                except:
+
+                    pass
+
+
+
+    # -------------------------------
+    # Gold18 scanner
+    # -------------------------------
+
+    def scan_gold18_object(
         self,
-        text
+        obj: dict,
+        result: Dict
     ):
 
-        result = {}
+
+        if "price" in obj:
 
 
-        try:
-
-
-            price = re.search(
-                r'"price":(\d+)',
-                text
+            price = self.clean(
+                obj.get(
+                    "price"
+                )
             )
 
 
@@ -370,15 +391,17 @@ class FarazParser:
 
                 result[
                     "gold18_price"
-                ] = float(
-                    price.group(1)
+                ] = price
+
+
+
+        if "volume" in obj:
+
+
+            volume = self.clean(
+                obj.get(
+                    "volume"
                 )
-
-
-
-            volume = re.search(
-                r'"volume":(\d+)',
-                text
             )
 
 
@@ -386,40 +409,32 @@ class FarazParser:
 
                 result[
                     "volume"
-                ] = float(
-                    volume.group(1)
-                )
+                ] = volume
 
 
 
-            change = re.search(
-                r'"changePercent":(-?\d+\.?\d*)',
-                text
-            )
+        if "changePercent" in obj:
 
 
-            if change:
+            try:
 
                 result[
                     "gold_daily_change"
                 ] = float(
-                    change.group(1)
+                    obj[
+                        "changePercent"
+                    ]
                 )
 
+            except:
 
-
-        except Exception as e:
-
-            print(
-                "GOLD18 ERROR:",
-                e
-            )
-
-
-        return result
+                pass
 
 
 
+    # -------------------------------
+    # Cleaner
+    # -------------------------------
 
     def clean(
         self,
