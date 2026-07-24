@@ -5,41 +5,28 @@ from typing import Dict, Any
 
 class FarazParser:
     """
-    Parse Faraz.io Next.js payload
+    Faraz.io Next.js Payload Parser
 
-    Extracts data from:
-    - self.__next_f stream
-    - __NEXT_DATA__
+    Safe Discovery Version
 
-    Output:
-    GoldNormalizer compatible dictionary
+    Purpose:
+    - Extract Next.js payload
+    - Discover market data
+    - No heavy processing
     """
 
-
     SEARCH_KEYS = [
-
         "xau",
-
         "gold",
-
         "ounce",
-
         "usd",
-
         "dollar",
-
         "coin",
-
         "emami",
-
         "bahar",
-
         "mesghal",
-
         "price"
-
     ]
-
 
 
     def parse(
@@ -47,43 +34,65 @@ class FarazParser:
         html: str
     ) -> Dict[str, Any]:
 
-
         result = {}
-
 
         try:
 
+            print(
+                "######## FARAZ PARSER DEBUG ########"
+            )
 
-            payloads = self._extract_next_payloads(
+
+            payloads = self._extract_payloads(
                 html
             )
 
 
             print(
-                "NEXT PAYLOAD COUNT:",
+                "PAYLOAD COUNT:",
                 len(payloads)
             )
 
 
-            for payload in payloads:
+            for i, payload in enumerate(payloads):
 
 
-                lower = payload.lower()
+                text = payload
+
+
+                lower = text.lower()
+
+
+                found = []
 
 
                 for key in self.SEARCH_KEYS:
 
-
                     if key in lower:
 
-                        print(
-                            "FOUND KEY:",
-                            key
-                        )
+                        found.append(key)
 
 
-                extracted = self._extract_numbers(
-                    payload
+
+                if found:
+
+
+                    print(
+
+                        "PAYLOAD",
+
+                        i,
+
+                        "KEYS:",
+
+                        found[:5]
+
+                    )
+
+
+
+                extracted = self._extract_values(
+                    text
                 )
 
 
@@ -93,45 +102,14 @@ class FarazParser:
 
 
 
-            # Fallback: __NEXT_DATA__
-
-            next_data = re.search(
-
-                r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
-
-                html,
-
-                re.DOTALL
-
-            )
-
-
-            if next_data:
-
-
-                try:
-
-                    data = json.loads(
-                        next_data.group(1)
-                    )
-
-
-                    result.update(
-                        self._extract_recursive(
-                            data
-                        )
-                    )
-
-
-                except Exception:
-
-                    pass
-
-
-
             print(
                 "PARSER RESULT:",
                 result
+            )
+
+
+            print(
+                "####################################"
             )
 
 
@@ -152,15 +130,20 @@ class FarazParser:
 
 
 
-    def _extract_next_payloads(
+    def _extract_payloads(
         self,
         html: str
     ):
 
 
+        pattern = (
+            r'self\.__next_f\.push\((.*?)\)'
+        )
+
+
         matches = re.findall(
 
-            r'self\.__next_f\.push\((.*?)\)</script>',
+            pattern,
 
             html,
 
@@ -173,7 +156,7 @@ class FarazParser:
 
 
 
-    def _extract_numbers(
+    def _extract_values(
         self,
         text: str
     ) -> Dict:
@@ -182,36 +165,38 @@ class FarazParser:
         values = {}
 
 
+
         patterns = {
+
 
             "xau_usd":
 
-                r'(?:xau|ounce)[^0-9]{0,30}([0-9]{3,5})',
+            r'(?:xau|ounce)[^0-9]{0,50}'
+            r'([0-9]{3,6})',
 
 
             "gold18_price":
 
-                r'(?:18|gold18)[^0-9]{0,30}([0-9]{6,12})',
+            r'(?:gold18|18k)[^0-9]{0,50}'
+            r'([0-9]{6,12})',
 
 
             "mesghal_price":
 
-                r'(?:mesghal)[^0-9]{0,30}([0-9]{6,12})',
+            r'mesghal[^0-9]{0,50}'
+            r'([0-9]{6,12})',
 
 
             "coin_emami":
 
-                r'(?:emami)[^0-9]{0,30}([0-9]{6,12})',
+            r'emami[^0-9]{0,50}'
+            r'([0-9]{6,12})',
 
 
             "coin_bahar":
 
-                r'(?:bahar)[^0-9]{0,30}([0-9]{6,12})',
-
-
-            "usd_free_rate":
-
-                r'(?:usd|dollar)[^0-9]{0,30}([0-9]{4,8})'
+            r'bahar[^0-9]{0,50}'
+            r'([0-9]{6,12})'
 
         }
 
@@ -240,58 +225,10 @@ class FarazParser:
                         match.group(1)
                     )
 
-                except:
+                except Exception:
 
                     pass
 
 
 
         return values
-
-
-
-    def _extract_recursive(
-        self,
-        obj
-    ) -> Dict:
-
-
-        result = {}
-
-
-        if isinstance(obj, dict):
-
-
-            for key, value in obj.items():
-
-                if isinstance(
-                    value,
-                    (int, float)
-                ):
-
-                    result[key] = value
-
-
-                else:
-
-                    result.update(
-                        self._extract_recursive(
-                            value
-                        )
-                    )
-
-
-
-        elif isinstance(obj, list):
-
-
-            for item in obj:
-
-                result.update(
-                    self._extract_recursive(
-                        item
-                    )
-                )
-
-
-        return result
