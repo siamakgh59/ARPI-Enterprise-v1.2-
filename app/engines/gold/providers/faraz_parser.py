@@ -1,3 +1,5 @@
+# app/engines/gold/providers/faraz_parser.py
+
 import re
 import json
 from typing import Dict, Any
@@ -5,26 +7,30 @@ from typing import Dict, Any
 
 class FarazParser:
     """
-    Faraz Gold Parser V6
+    Faraz.io Gold Market Parser V6
 
-    Extract:
-    - XAU/USD
-    - Gold 18
-    - Mesghal
-    - USD
-    - Coins
-
-    Compatible with Next.js escaped payload
+    Features:
+    - Next.js payload extraction
+    - Robust row detection
+    - Handles escaped JSON
+    - Extracts:
+        xau_usd
+        gold18_price
+        mesghal_price
+        usd_free_rate
+        coin_emami
+        coin_bahar
     """
+
 
     def parse(self, html: str) -> Dict[str, Any]:
 
-        result = {}
-
-        print("######## FARAZ PARSER V6 DEBUG ########")
-
+        result: Dict[str, Any] = {}
 
         try:
+
+            print("######## FARAZ PARSER V6 DEBUG ########")
+
 
             payloads = re.findall(
                 r'self\.__next_f\.push\((.*?)\)</script>',
@@ -39,49 +45,63 @@ class FarazParser:
             )
 
 
-            for i,payload in enumerate(payloads):
+            for index, payload in enumerate(payloads):
 
 
-                if "rows" not in payload:
-                    continue
-
-
-                print(
-                    "MARKET PAYLOAD FOUND:",
-                    i
-                )
-
-
-                rows = self.extract_rows(
+                payload_clean = (
                     payload
+                    .replace('\\"', '"')
+                    .replace('\\\\', '\\')
                 )
 
 
-                print(
-                    "ROWS FOUND:",
-                    len(rows)
-                )
+                if (
+                    "rows" in payload_clean
+                    and
+                    "lastPrice" in payload_clean
+                ):
 
 
-                mapped = self.map_rows(
-                    rows
-                )
+                    print(
+                        "MARKET PAYLOAD FOUND:",
+                        index
+                    )
 
 
-                result.update(
-                    mapped
-                )
+                    rows = self.extract_rows(
+                        payload_clean
+                    )
 
 
+                    print(
+                        "ROWS FOUND:",
+                        len(rows)
+                    )
 
-                # XAU
-                xau = self.extract_xau(
-                    payload
-                )
 
-                if xau:
+                    mapped = self.map_rows(
+                        rows
+                    )
 
-                    result["xau_usd"] = xau
+
+                    result.update(
+                        mapped
+                    )
+
+
+                # XAU extraction
+
+                if "xau" in payload_clean.lower():
+
+
+                    xau = self.extract_xau(
+                        payload_clean
+                    )
+
+
+                    if xau:
+
+                        result["xau_usd"] = xau
 
 
 
@@ -89,6 +109,7 @@ class FarazParser:
                 "FINAL PARSER RESULT:",
                 result
             )
+
 
             print(
                 "####################################"
@@ -103,8 +124,8 @@ class FarazParser:
 
 
             print(
-                "PARSER ERROR:",
-                e
+                "FARAZ PARSER ERROR:",
+                str(e)
             )
 
 
@@ -113,22 +134,22 @@ class FarazParser:
 
 
 
-
     def extract_rows(
         self,
-        text
+        text: str
     ):
 
 
-        rows=[]
+        rows = []
 
 
         pattern = re.compile(
 
-            r'\\"symbol\\":\\"(.*?)\\".*?'
-            r'\\"persianName\\":\\"(.*?)\\".*?'
-            r'\\"lastPrice\\":\\"(.*?)\\"',
+            r'"symbol"\s*:\s*"([^"]+)".*?'
+            r'"persianName"\s*:\s*"([^"]+)".*?'
+            r'"lastPrice"\s*:\s*"([^"]+)"'
 
+        ,
             re.DOTALL
 
         )
@@ -140,16 +161,22 @@ class FarazParser:
 
 
 
-        for m in matches:
+        for item in matches:
 
 
             rows.append({
 
-                "symbol":m[0],
-                "name":m[1],
-                "price":m[2]
+                "symbol":
+                    item[0],
+
+                "name":
+                    item[1],
+
+                "price":
+                    item[2]
 
             })
+
 
 
         return rows
@@ -157,8 +184,7 @@ class FarazParser:
 
 
 
-
-    def clean(
+    def clean_price(
         self,
         value
     ):
@@ -166,16 +192,26 @@ class FarazParser:
 
         try:
 
-            return float(
 
-                value
-                .replace(",","")
-                .strip()
-
+            value = (
+                str(value)
+                .replace(
+                    ",",
+                    ""
+                )
+                .replace(
+                    " ",
+                    ""
+                )
             )
 
 
+            return float(value)
+
+
+
         except:
+
 
             return None
 
@@ -189,35 +225,51 @@ class FarazParser:
     ):
 
 
-        data={}
+        data = {}
+
 
 
         for row in rows:
 
 
-            symbol=row["symbol"].lower()
+            symbol = (
+                row["symbol"]
+                .lower()
+            )
 
-            name=row["name"]
 
-            price=self.clean(
+            name = row["name"]
+
+
+            price = self.clean_price(
                 row["price"]
             )
+
 
 
             print(
                 "ROW:",
                 symbol,
+                name,
                 price
             )
 
 
 
-            # طلای 18 عیار
+            if price is None:
+                continue
+
+
+
+            # طلای ۱۸ عیار
 
             if (
 
-                "geramTalaHejdah".lower()
-                in symbol
+                "geramtalahejdah" in symbol
+
+                or
+
+                "tala18" in symbol
 
                 or
 
@@ -229,11 +281,13 @@ class FarazParser:
 
             ):
 
-                data["gold18_price"]=price
+                data[
+                    "gold18_price"
+                ] = price
 
 
 
-            # مظنه
+            # مظنه آبشده
 
             if (
 
@@ -249,7 +303,9 @@ class FarazParser:
 
             ):
 
-                data["mesghal_price"]=price
+                data[
+                    "mesghal_price"
+                ] = price
 
 
 
@@ -258,26 +314,40 @@ class FarazParser:
             if (
 
                 "usd" in symbol
+
                 or
+
                 "dollar" in symbol
+
                 or
+
                 "دلار" in name
 
             ):
 
-                data["usd_free_rate"]=price
+                data[
+                    "usd_free_rate"
+                ] = price
 
 
+
+            # سکه امامی
 
             if "emami" in symbol:
 
-                data["coin_emami"]=price
+                data[
+                    "coin_emami"
+                ] = price
 
 
+
+            # سکه بهار
 
             if "bahar" in symbol:
 
-                data["coin_bahar"]=price
+                data[
+                    "coin_bahar"
+                ] = price
 
 
 
@@ -293,28 +363,42 @@ class FarazParser:
     ):
 
 
-        match=re.search(
+        patterns = [
 
-            r'xau.{0,100}?([0-9]{3,6})',
+            r'"xau_usd"\s*:\s*"?([0-9.]+)"?',
 
-            text,
+            r'xau.{0,80}?([0-9]{3,6}\.?[0-9]*)'
 
-            re.I
-
-        )
+        ]
 
 
-        if match:
 
-            try:
+        for pattern in patterns:
 
-                return float(
-                    match.group(1)
-                )
 
-            except:
+            match = re.search(
 
-                pass
+                pattern,
+
+                text,
+
+                re.I
+
+            )
+
+
+            if match:
+
+
+                try:
+
+                    return float(
+                        match.group(1)
+                    )
+
+                except:
+
+                    pass
 
 
 
