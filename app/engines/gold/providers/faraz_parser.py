@@ -1,14 +1,17 @@
 import re
-import json
 import html
 from typing import Dict, Any
 
 
 class FarazParser:
     """
-    Faraz.io Gold Parser V9
+    Faraz.io Gold Parser V10
 
-    Robust Next.js payload parser
+    Extract:
+    - mesghal_price
+    - gold18_price
+    - usd_free_rate
+    - coins (future)
 
     Sources:
     - market
@@ -26,7 +29,7 @@ class FarazParser:
         try:
 
             print(
-                "######## FARAZ PARSER V9 DEBUG ########"
+                "######## FARAZ PARSER V10 DEBUG ########"
             )
 
             print(
@@ -55,21 +58,12 @@ class FarazParser:
                 )
 
 
-                if index == 0:
-
-                    print(
-                        "DECODE SAMPLE:",
-                        decoded[:300]
-                    )
-
-
-
                 if source == "market":
 
                     if (
-                        "lastPrice" in decoded
-                        or
                         "rows" in decoded
+                        or
+                        "lastPrice" in decoded
                     ):
 
                         print(
@@ -90,22 +84,25 @@ class FarazParser:
 
 
                         result.update(
-                            self.map_rows(rows)
+                            self.map_rows(
+                                rows
+                            )
                         )
 
 
 
                 if source == "gold18":
 
-                    value = self.extract_price(
+                    price = self.extract_gold18(
                         decoded
                     )
 
-                    if value:
+
+                    if price:
 
                         result[
                             "gold18_price"
-                        ] = value
+                        ] = price
 
 
 
@@ -113,6 +110,7 @@ class FarazParser:
                 "FINAL RESULT:",
                 result
             )
+
 
             print(
                 "####################################"
@@ -139,7 +137,6 @@ class FarazParser:
         text: str
     ) -> str:
 
-
         try:
 
             text = (
@@ -152,7 +149,6 @@ class FarazParser:
                 )
             )
 
-
         except:
 
             pass
@@ -163,7 +159,6 @@ class FarazParser:
             text = html.unescape(
                 text
             )
-
 
         except:
 
@@ -176,14 +171,11 @@ class FarazParser:
 
     def extract_rows(
         self,
-        text: str
+        text
     ):
-
 
         rows = []
 
-
-        # استخراج هر symbol
 
         symbols = re.finditer(
             r'"symbol"\s*:\s*"([^"]+)"',
@@ -191,24 +183,19 @@ class FarazParser:
         )
 
 
-        for symbol_match in symbols:
+        for match in symbols:
 
 
-            symbol = symbol_match.group(1)
+            symbol = match.group(1)
 
 
-            start = max(
-                0,
-                symbol_match.start()-200
-            )
-
-
-            end = (
-                symbol_match.end()+500
-            )
-
-
-            block = text[start:end]
+            block = text[
+                max(
+                    0,
+                    match.start()-200
+                ):
+                match.end()+600
+            ]
 
 
 
@@ -235,7 +222,6 @@ class FarazParser:
 
             if price:
 
-
                 rows.append({
 
                     "symbol":
@@ -252,7 +238,6 @@ class FarazParser:
                 })
 
 
-
         return rows
 
 
@@ -263,9 +248,7 @@ class FarazParser:
         keys
     ):
 
-
         for key in keys:
-
 
             patterns = [
 
@@ -278,71 +261,17 @@ class FarazParser:
 
             for pattern in patterns:
 
-
-                match = re.search(
+                m = re.search(
                     pattern,
                     text
                 )
 
+                if m:
 
-                if match:
-
-                    return match.group(1)
-
+                    return m.group(1)
 
 
         return None
-
-
-
-    def fix_encoding(
-        self,
-        text
-    ):
-
-
-        try:
-
-            if "Ù" in text:
-
-                return (
-                    text
-                    .encode(
-                        "latin1"
-                    )
-                    .decode(
-                        "utf-8"
-                    )
-                )
-
-
-        except:
-
-            pass
-
-
-        return text
-
-
-
-    def clean(
-        self,
-        value
-    ):
-
-
-        try:
-
-            return float(
-                str(value)
-                .replace(",","")
-                .replace(" ","")
-            )
-
-
-        except:
-
-            return None
 
 
 
@@ -351,9 +280,9 @@ class FarazParser:
         rows
     ):
 
-
         data = {}
 
+        usd_candidates = []
 
 
         for row in rows:
@@ -384,19 +313,26 @@ class FarazParser:
             )
 
 
-
             if not price:
 
                 continue
 
 
 
+            # مظنه آبشده
+
             if (
+
                 "abshode" in symbol
+
                 or
+
                 "مظنه" in name
+
                 or
+
                 "آبشده" in name
+
             ):
 
                 data[
@@ -405,19 +341,30 @@ class FarazParser:
 
 
 
-            if (
-                "usd" in symbol
-                or
-                "dollar" in symbol
-                or
-                "دلار" in name
-            ):
+            # دلار آزاد
 
-                data[
-                    "usd_free_rate"
-                ] = price
+            if symbol in [
+
+                "usdteh-c",
+
+                "usdhrt-c",
+
+                "usdteh-d",
+
+                "usdhrt-d"
+
+            ]:
+
+                usd_candidates.append(
+                    (
+                        symbol,
+                        price
+                    )
+                )
 
 
+
+            # سکه امامی
 
             if "emami" in symbol:
 
@@ -427,6 +374,8 @@ class FarazParser:
 
 
 
+            # سکه بهار
+
             if "bahar" in symbol:
 
                 data[
@@ -435,37 +384,133 @@ class FarazParser:
 
 
 
+        # انتخاب دلار آزاد
+
+        priority = [
+
+            "usdteh-c",
+
+            "usdhrt-c",
+
+            "usdteh-d",
+
+            "usdhrt-d"
+
+        ]
+
+
+        for item in priority:
+
+            for symbol, price in usd_candidates:
+
+                if symbol == item:
+
+                    data[
+                        "usd_free_rate"
+                    ] = price
+
+                    break
+
+
+            if "usd_free_rate" in data:
+
+                break
+
+
+
         return data
 
 
 
-    def extract_price(
+    def extract_gold18(
         self,
         text
     ):
 
 
-        values = re.findall(
+        patterns = [
 
-            r'"(?:lastPrice|price|value)"\s*:\s*"?([0-9\.]+)"?',
+            r'"lastPrice"\s*:\s*"?(.*?)"?[,}]',
 
-            text
+            r'"price"\s*:\s*"?(.*?)"?[,}]',
 
-        )
+            r'"value"\s*:\s*"?(.*?)"?[,}]'
+
+        ]
 
 
-        for value in values:
+        for pattern in patterns:
 
 
-            number = self.clean(
-                value
+            match = re.search(
+                pattern,
+                text
             )
 
 
-            if number and number > 100000:
+            if match:
 
-                return number
+                value = self.clean(
+                    match.group(1)
+                )
 
+
+                if value and value > 100000:
+
+                    return value
 
 
         return None
+
+
+
+    def clean(
+        self,
+        value
+    ):
+
+        try:
+
+            return float(
+                str(value)
+                .replace(
+                    ",",
+                    ""
+                )
+                .replace(
+                    " ",
+                    ""
+                )
+            )
+
+        except:
+
+            return None
+
+
+
+    def fix_encoding(
+        self,
+        text
+    ):
+
+        try:
+
+            if "Ù" in text:
+
+                return (
+                    text
+                    .encode(
+                        "latin1"
+                    )
+                    .decode(
+                        "utf-8"
+                    )
+                )
+
+        except:
+
+            pass
+
+
+        return text
