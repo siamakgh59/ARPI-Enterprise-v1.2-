@@ -1,34 +1,29 @@
 from datetime import datetime
 from typing import Dict
 
+import httpx
+
 from .faraz_scraper import FarazScraper
 from .faraz_parser import FarazParser
 from .normalizer import GoldNormalizer
 
 
+
 class FarazGoldProvider:
     """
-    Faraz.io Gold Market Data Provider
+    Faraz.io Gold Market Provider V7
 
-    Flow:
+    Sources:
 
-    FarazScraper
-          |
-          v
-    Raw HTML
-          |
-          v
-    FarazParser
-          |
-          v
-    Parsed Gold Data
-          |
-          v
-    GoldNormalizer
-          |
-          v
-    Gold Engine
+    1- gold-currency
+       - mesghal
+       - usd
+       - coins
+
+    2- geramTalaHejdah
+       - 18K gold price
     """
+
 
 
     def __init__(self):
@@ -43,68 +38,174 @@ class FarazGoldProvider:
 
 
 
-    def fetch_gold_data(self) -> Dict:
-        """
-        Fetch latest gold market data.
+        self.gold18_url = (
+            "https://faraz.io/markets/gold-currency/geramTalaHejdah"
+        )
 
-        Provider failure must never
-        stop ARPI.
-        """
+
+
+    def fetch_gold18_page(self):
+
+        try:
+
+            headers = {
+
+                "User-Agent":
+                (
+                    "Mozilla/5.0 "
+                    "(Windows NT 10.0; Win64; x64)"
+                )
+
+            }
+
+
+            response = httpx.get(
+                self.gold18_url,
+                headers=headers,
+                timeout=20
+            )
+
+
+            response.raise_for_status()
+
+
+            html = response.text
+
+
+            print(
+                "######## GOLD18 FETCH ########"
+            )
+
+            print(
+                "URL:",
+                self.gold18_url
+            )
+
+            print(
+                "HTML LENGTH:",
+                len(html)
+            )
+
+            print(
+                "################################"
+            )
+
+
+            return html
+
+
+
+        except Exception as e:
+
+
+            print(
+                "Gold18 Fetch Error:",
+                e
+            )
+
+
+            return None
+
+
+
+
+    def fetch_gold_data(self) -> Dict:
 
 
         try:
+
 
             print(
                 "######## GOLD PROVIDER ACTIVE ########"
             )
 
 
-            # TEMP TEST
-            # This confirms Railway is running
-            # the new provider code.
 
-            # raise Exception(
-            #     "GOLD_PROVIDER_TEST_ACTIVE"
-            # )
+            # -------------------------
+            # SOURCE 1
+            # Main Market
+            # -------------------------
 
 
-            raw_html = self.scraper.fetch_page()
-
-
-
-            print(
-                "RAW HTML TYPE:",
-                type(raw_html)
+            market_html = (
+                self.scraper.fetch_page()
             )
 
 
-            if isinstance(raw_html, dict):
+            if isinstance(
+                market_html,
+                dict
+            ):
 
-                if "error" in raw_html:
-
-                    print(
-                        "Faraz scraper returned error"
-                    )
-
-                    return self._fallback()
+                return self._fallback()
 
 
 
-            print(
-                "RAW HTML LENGTH:",
-                len(raw_html)
-            )
-
-
-
-            parsed_data = self.parser.parse(
-                raw_html
+            market_data = self.parser.parse(
+                market_html,
+                source="market"
             )
 
 
 
             print(
-                "######## PARSED GOLD DATA ########"
+                "MARKET DATA:",
+                market_data
+            )
+
+
+
+            # -------------------------
+            # SOURCE 2
+            # Gold 18
+            # -------------------------
+
+
+            gold18_html = (
+                self.fetch_gold18_page()
+            )
+
+
+
+            gold18_data = {}
+
+
+
+            if gold18_html:
+
+
+                gold18_data = self.parser.parse(
+                    gold18_html,
+                    source="gold18"
+                )
+
+
+
+            print(
+                "GOLD18 DATA:",
+                gold18_data
+            )
+
+
+
+            # Merge
+
+            parsed_data = {}
+
+
+            parsed_data.update(
+                market_data
+            )
+
+
+            parsed_data.update(
+                gold18_data
+            )
+
+
+
+            print(
+                "######## FINAL PARSED GOLD ########"
             )
 
             print(
@@ -112,27 +213,22 @@ class FarazGoldProvider:
             )
 
             print(
-                "##################################"
+                "###################################"
             )
 
 
 
-            normalized = self.normalizer.normalize(
-                parsed_data
+            normalized = (
+                self.normalizer.normalize(
+                    parsed_data
+                )
             )
 
 
 
             print(
-                "######## NORMALIZED GOLD DATA ########"
-            )
-
-            print(
+                "NORMALIZED:",
                 normalized
-            )
-
-            print(
-                "#######################################"
             )
 
 
@@ -141,12 +237,13 @@ class FarazGoldProvider:
 
 
 
+
         except Exception as e:
 
 
             print(
                 "Faraz Provider Error:",
-                str(e)
+                e
             )
 
 
@@ -154,11 +251,8 @@ class FarazGoldProvider:
 
 
 
-    def _fallback(self) -> Dict:
-        """
-        Safe fallback.
-        Keeps ARPI alive.
-        """
+
+    def _fallback(self):
 
 
         return {
