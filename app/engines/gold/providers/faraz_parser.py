@@ -1,21 +1,18 @@
 import re
+import json
 from typing import Dict, Any
 
 
 class FarazParser:
-    """
-    Faraz.io Gold Parser V11
 
-    Extract:
-    - Mesghal price
-    - Gold 18 price
-    - USD
-    - Coins
-
-    Strategy:
-    Persian name priority
-    Symbol secondary
     """
+    Faraz Parser V12
+
+    Stable parser based on:
+    - Next.js payload extraction
+    - Flexible row detection
+    """
+
 
     MESGHAL_FACTOR = 4.0715
 
@@ -28,11 +25,11 @@ class FarazParser:
 
         result = {}
 
+        print("######## FARAZ PARSER V12 DEBUG ########")
+        print("SOURCE:", source)
+
+
         try:
-
-            print("######## FARAZ PARSER V11 DEBUG ########")
-            print("SOURCE:", source)
-
 
             payloads = re.findall(
                 r'self\.__next_f\.push\((.*?)\)</script>',
@@ -47,18 +44,25 @@ class FarazParser:
             )
 
 
-            for payload in payloads:
+            for i,payload in enumerate(payloads):
 
 
-                if (
-                    "rows" in payload
-                    or
-                    "lastPrice" in payload
-                ):
+                decoded = (
+                    payload
+                    .replace('\\"','"')
+                )
+
+
+                if "rows" in decoded:
+
+                    print(
+                        "ROWS PAYLOAD:",
+                        i
+                    )
 
 
                     rows = self.extract_rows(
-                        payload
+                        decoded
                     )
 
 
@@ -73,23 +77,23 @@ class FarazParser:
                     )
 
 
+
                 if source == "gold18":
 
 
-                    gold18 = self.extract_price(
-                        payload
+                    price = self.extract_price(
+                        decoded
                     )
 
 
-                    if gold18:
+                    if price:
 
                         result[
                             "gold18_price"
-                        ] = gold18
+                        ] = price
 
 
 
-            # محاسبه fallback
             if (
                 "gold18_price" not in result
                 and
@@ -101,9 +105,9 @@ class FarazParser:
                 ] = round(
                     result["mesghal_price"]
                     /
-                    self.MESGHAL_FACTOR,
-                    0
+                    self.MESGHAL_FACTOR
                 )
+
 
 
             print(
@@ -122,7 +126,7 @@ class FarazParser:
         except Exception as e:
 
             print(
-                "Parser Error:",
+                "PARSER ERROR:",
                 e
             )
 
@@ -138,21 +142,20 @@ class FarazParser:
         rows=[]
 
 
-        pattern = (
-            r'"symbol":"(.*?)".*?'
-            r'"persianName":"(.*?)".*?'
-            r'"lastPrice":("?)([\d\.]+)\3'
-        )
+        # flexible matcher
 
+        pattern = re.compile(
 
-        matches = re.findall(
-            pattern,
-            text,
+            r'"symbol"\s*:\s*"([^"]+)".{0,500}?'
+            r'"(?:persianName|name)"\s*:\s*"([^"]+)".{0,500}?'
+            r'"lastPrice"\s*:\s*"?([\d\.]+)"?',
+
             re.DOTALL
+
         )
 
 
-        for m in matches:
+        for m in pattern.findall(text):
 
 
             rows.append({
@@ -166,7 +169,7 @@ class FarazParser:
 
                 "price":
                     self.clean(
-                        m[3]
+                        m[2]
                     )
 
             })
@@ -202,13 +205,14 @@ class FarazParser:
             )
 
 
-            # مظنه آبشده
             if (
+
                 "مظنه" in name
                 or
                 "آبشده" in name
                 or
                 "abshode" in symbol
+
             ):
 
                 data[
@@ -217,11 +221,12 @@ class FarazParser:
 
 
 
-            # دلار
             elif (
+
                 "دلار" in name
                 or
                 "usd" in symbol
+
             ):
 
                 data[
@@ -255,13 +260,14 @@ class FarazParser:
         text
     ):
 
+
         patterns=[
 
-            r'"lastPrice":("?)([\d\.]+)\1',
+            r'"lastPrice"\s*:\s*"?([\d\.]+)"?',
 
-            r'"price":("?)([\d\.]+)\1',
+            r'"price"\s*:\s*"?([\d\.]+)"?',
 
-            r'"value":("?)([\d\.]+)\1'
+            r'"value"\s*:\s*"?([\d\.]+)"?'
 
         ]
 
@@ -278,7 +284,7 @@ class FarazParser:
             if m:
 
                 return self.clean(
-                    m.group(2)
+                    m.group(1)
                 )
 
 
