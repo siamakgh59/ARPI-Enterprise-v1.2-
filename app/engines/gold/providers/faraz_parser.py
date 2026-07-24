@@ -1,20 +1,22 @@
 import re
-import json
 from typing import Dict, Any
 
 
 class FarazParser:
     """
-    Faraz.io Gold Parser V14 Stable
+    Faraz.io Gold Parser V15 Stable
 
-    Responsibilities:
+    Features:
 
-    - Parse Next.js payloads
+    - Parse Faraz Next.js payloads
     - Extract market rows
     - Extract 18K gold price
-    - Normalize Faraz data for ARPI Gold Engine
+    - Unit normalization
+    - Handle compressed prices:
+        42   -> 42,000,000
+        192  -> 192,000
 
-    Supported outputs:
+    Output:
 
     mesghal_price
     gold18_price
@@ -28,6 +30,7 @@ class FarazParser:
         self.result = {}
 
 
+
     def parse(
         self,
         html: str,
@@ -36,10 +39,11 @@ class FarazParser:
 
         result = {}
 
+
         try:
 
             print(
-                "######## FARAZ PARSER V14 DEBUG ########"
+                "######## FARAZ PARSER V15 DEBUG ########"
             )
 
             print(
@@ -61,7 +65,8 @@ class FarazParser:
 
             for index, payload in enumerate(payloads):
 
-                decoded = self.decode_payload(
+
+                payload = self.decode_payload(
                     payload
                 )
 
@@ -70,14 +75,14 @@ class FarazParser:
 
 
                     if (
-                        "rows" in decoded
+                        "rows" in payload
                         or
-                        "lastPrice" in decoded
+                        "lastPrice" in payload
                     ):
 
 
                         rows = self.extract_rows(
-                            decoded
+                            payload
                         )
 
 
@@ -93,13 +98,12 @@ class FarazParser:
                         )
 
 
-                        market_data = self.map_rows(
-                            rows
-                        )
-
-
                         result.update(
-                            market_data
+
+                            self.map_rows(
+                                rows
+                            )
+
                         )
 
 
@@ -107,23 +111,18 @@ class FarazParser:
                 if source == "gold18":
 
 
-                    gold18 = self.extract_gold18(
-                        decoded
+                    value = self.extract_gold18(
+                        payload
                     )
 
 
-                    if gold18:
+                    if value:
 
 
                         result[
                             "gold18_price"
-                        ] = gold18
+                        ] = value
 
-
-
-            result = self.validate_result(
-                result
-            )
 
 
             print(
@@ -159,6 +158,7 @@ class FarazParser:
         html: str
     ):
 
+
         return re.findall(
 
             r'self\.__next_f\.push\((.*?)\)</script>',
@@ -176,13 +176,10 @@ class FarazParser:
         payload: str
     ):
 
-        """
-        Decode Next.js escaped payload
-        """
 
         try:
 
-            payload = (
+            return (
                 payload
                 .encode()
                 .decode(
@@ -190,13 +187,9 @@ class FarazParser:
                 )
             )
 
-
         except:
 
-            pass
-
-
-        return payload
+            return payload
 
 
 
@@ -215,7 +208,7 @@ class FarazParser:
 
             r'"persianName"\s*:\s*"([^"]+)".*?'
 
-            r'"lastPrice"\s*:\s*"?([\d\.]+)"?'
+            r'"lastPrice"\s*:\s*"?([0-9\.]+)"?'
 
         )
 
@@ -260,6 +253,7 @@ class FarazParser:
         text
     ):
 
+
         try:
 
             if "Ù" in text:
@@ -291,6 +285,7 @@ class FarazParser:
         value
     ):
 
+
         try:
 
             return float(
@@ -310,6 +305,59 @@ class FarazParser:
 
 
 
+    def normalize_price(
+        self,
+        value,
+        price_type
+    ):
+
+
+        """
+        Faraz sometimes returns compressed values.
+
+        Example:
+
+        mesghal:
+        42 -> 42,000,000
+
+        usd:
+        192 -> 192,000
+
+        """
+
+
+        if value is None:
+
+            return None
+
+
+
+        value = float(value)
+
+
+
+        if price_type == "mesghal":
+
+
+            if value < 1000:
+
+                return value * 1000000
+
+
+
+        if price_type == "usd":
+
+
+            if value < 1000:
+
+                return value * 1000
+
+
+
+        return value
+
+
+
     def map_rows(
         self,
         rows
@@ -317,6 +365,7 @@ class FarazParser:
 
 
         data = {}
+
 
 
         for row in rows:
@@ -339,7 +388,6 @@ class FarazParser:
             )
 
 
-
             print(
                 "ROW:",
                 symbol,
@@ -355,8 +403,6 @@ class FarazParser:
 
                 "abshode" in symbol
                 or
-                "mesghal" in symbol
-                or
                 "مظنه" in name
                 or
                 "آبشده" in name
@@ -364,7 +410,16 @@ class FarazParser:
             ):
 
 
-                if price and price > 1000000:
+                price = self.normalize_price(
+
+                    price,
+
+                    "mesghal"
+
+                )
+
+
+                if price:
 
                     data[
                         "mesghal_price"
@@ -372,7 +427,9 @@ class FarazParser:
 
 
 
-            # دلار
+
+            # دلار آزاد
+
 
             elif (
 
@@ -385,7 +442,16 @@ class FarazParser:
             ):
 
 
-                if price and price > 10000:
+                price = self.normalize_price(
+
+                    price,
+
+                    "usd"
+
+                )
+
+
+                if price:
 
                     data[
                         "usd_free_rate"
@@ -393,7 +459,9 @@ class FarazParser:
 
 
 
+
             # سکه امامی
+
 
             elif "emami" in symbol:
 
@@ -404,7 +472,9 @@ class FarazParser:
 
 
 
+
             # سکه بهار
+
 
             elif "bahar" in symbol:
 
@@ -434,10 +504,7 @@ class FarazParser:
             r'"price"\s*:\s*"?([0-9\.]+)"?',
 
 
-            r'"value"\s*:\s*"?([0-9\.]+)"?',
-
-
-            r'"amount"\s*:\s*"?([0-9\.]+)"?'
+            r'"value"\s*:\s*"?([0-9\.]+)"?'
 
 
         ]
@@ -479,56 +546,3 @@ class FarazParser:
 
 
         return None
-
-
-
-    def validate_result(
-        self,
-        data
-    ):
-
-
-        validated = {}
-
-
-
-        for key, value in data.items():
-
-
-            if value is None:
-
-                continue
-
-
-
-            if key == "mesghal_price":
-
-                if value > 1000000:
-
-                    validated[key] = value
-
-
-
-            elif key == "gold18_price":
-
-                if value > 1000000:
-
-                    validated[key] = value
-
-
-
-            elif key == "usd_free_rate":
-
-                if value > 10000:
-
-                    validated[key] = value
-
-
-
-            else:
-
-                validated[key] = value
-
-
-
-        return validated
