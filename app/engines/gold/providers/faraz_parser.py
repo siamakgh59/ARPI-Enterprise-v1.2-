@@ -1,20 +1,24 @@
 import re
-import json
 from typing import Dict, Any
 
 
 class FarazParser:
-
     """
-    Faraz Parser V12
+    Faraz.io Gold Parser V13
 
-    Stable parser based on:
-    - Next.js payload extraction
-    - Flexible row detection
+    Responsibilities:
+    - Parse Faraz Next.js payloads
+    - Extract:
+        * Mesghal (Muzaneh Abshode)
+        * USD Free Rate
+        * Gold 18K price
+
+    Designed for ARPI Gold Engine.
     """
 
+    def __init__(self):
 
-    MESGHAL_FACTOR = 4.0715
+        self.result = {}
 
 
     def parse(
@@ -25,11 +29,17 @@ class FarazParser:
 
         result = {}
 
-        print("######## FARAZ PARSER V12 DEBUG ########")
-        print("SOURCE:", source)
-
-
         try:
+
+            print(
+                "######## FARAZ PARSER V13 DEBUG ########"
+            )
+
+            print(
+                "SOURCE:",
+                source
+            )
+
 
             payloads = re.findall(
                 r'self\.__next_f\.push\((.*?)\)</script>',
@@ -44,69 +54,52 @@ class FarazParser:
             )
 
 
-            for i,payload in enumerate(payloads):
+            for index, payload in enumerate(payloads):
 
 
-                decoded = (
-                    payload
-                    .replace('\\"','"')
-                )
+                if source == "market":
 
 
-                if "rows" in decoded:
+                    if (
+                        "rows" in payload
+                        or
+                        "lastPrice" in payload
+                    ):
 
-                    print(
-                        "ROWS PAYLOAD:",
-                        i
-                    )
-
-
-                    rows = self.extract_rows(
-                        decoded
-                    )
+                        rows = self.extract_rows(
+                            payload
+                        )
 
 
-                    print(
-                        "ROWS FOUND:",
-                        len(rows)
-                    )
+                        print(
+                            "ROWS FOUND:",
+                            len(rows)
+                        )
 
 
-                    result.update(
-                        self.map_rows(rows)
-                    )
+                        mapped = self.map_rows(
+                            rows
+                        )
 
+
+                        result.update(
+                            mapped
+                        )
 
 
                 if source == "gold18":
 
 
-                    price = self.extract_price(
-                        decoded
+                    value = self.extract_gold18(
+                        payload
                     )
 
 
-                    if price:
+                    if value:
 
                         result[
                             "gold18_price"
-                        ] = price
-
-
-
-            if (
-                "gold18_price" not in result
-                and
-                "mesghal_price" in result
-            ):
-
-                result[
-                    "gold18_price"
-                ] = round(
-                    result["mesghal_price"]
-                    /
-                    self.MESGHAL_FACTOR
-                )
+                        ] = value
 
 
 
@@ -115,12 +108,14 @@ class FarazParser:
                 result
             )
 
+
             print(
-                "################################"
+                "####################################"
             )
 
 
             return result
+
 
 
         except Exception as e:
@@ -134,186 +129,11 @@ class FarazParser:
 
 
 
-    def extract_rows(
-        self,
-        text
-    ):
-
-        rows=[]
-
-
-        # flexible matcher
-
-        pattern = re.compile(
-
-            r'"symbol"\s*:\s*"([^"]+)".{0,500}?'
-            r'"(?:persianName|name)"\s*:\s*"([^"]+)".{0,500}?'
-            r'"lastPrice"\s*:\s*"?([\d\.]+)"?',
-
-            re.DOTALL
-
-        )
-
-
-        for m in pattern.findall(text):
-
-
-            rows.append({
-
-                "symbol":m[0],
-
-                "name":
-                    self.fix_encoding(
-                        m[1]
-                    ),
-
-                "price":
-                    self.clean(
-                        m[2]
-                    )
-
-            })
-
-
-        return rows
-
-
-
-    def map_rows(
-        self,
-        rows
-    ):
-
-        data={}
-
-
-        for row in rows:
-
-
-            symbol=row["symbol"].lower()
-
-            name=row["name"]
-
-            price=row["price"]
-
-
-            print(
-                "ROW:",
-                symbol,
-                name,
-                price
-            )
-
-
-            if (
-
-                "مظنه" in name
-                or
-                "آبشده" in name
-                or
-                "abshode" in symbol
-
-            ):
-
-                data[
-                    "mesghal_price"
-                ] = price
-
-
-
-            elif (
-
-                "دلار" in name
-                or
-                "usd" in symbol
-
-            ):
-
-                data[
-                    "usd_free_rate"
-                ] = price
-
-
-
-            elif "emami" in symbol:
-
-                data[
-                    "coin_emami"
-                ] = price
-
-
-
-            elif "bahar" in symbol:
-
-                data[
-                    "coin_bahar"
-                ] = price
-
-
-
-        return data
-
-
-
-    def extract_price(
-        self,
-        text
-    ):
-
-
-        patterns=[
-
-            r'"lastPrice"\s*:\s*"?([\d\.]+)"?',
-
-            r'"price"\s*:\s*"?([\d\.]+)"?',
-
-            r'"value"\s*:\s*"?([\d\.]+)"?'
-
-        ]
-
-
-        for p in patterns:
-
-
-            m=re.search(
-                p,
-                text
-            )
-
-
-            if m:
-
-                return self.clean(
-                    m.group(1)
-                )
-
-
-        return None
-
-
-
-    def clean(
-        self,
-        value
-    ):
-
-        try:
-
-            return float(
-                str(value)
-                .replace(",","")
-            )
-
-        except:
-
-            return None
-
-
-
     def fix_encoding(
         self,
-        text
-    ):
+        text: str
+    ) -> str:
+
 
         try:
 
@@ -331,3 +151,287 @@ class FarazParser:
 
 
         return text
+
+
+
+    def extract_rows(
+        self,
+        payload: str
+    ):
+
+
+        rows = []
+
+
+        pattern = (
+
+            r'"symbol":"(.*?)".*?'
+            r'"persianName":"(.*?)".*?'
+            r'"lastPrice":("?)([\d\.]+)\3'
+
+        )
+
+
+        matches = re.findall(
+            pattern,
+            payload,
+            re.DOTALL
+        )
+
+
+        for item in matches:
+
+
+            price = self.clean(
+                item[3]
+            )
+
+
+            if price is None:
+                continue
+
+
+            rows.append({
+
+                "symbol":
+                    item[0],
+
+                "name":
+                    self.fix_encoding(
+                        item[1]
+                    ),
+
+                "price":
+                    price
+
+            })
+
+
+        return rows
+
+
+
+    def clean(
+        self,
+        value
+    ):
+
+
+        try:
+
+            value = float(
+                str(value)
+                .replace(",","")
+            )
+
+
+            return value
+
+
+        except:
+
+            return None
+
+
+
+    def validate_price(
+        self,
+        key,
+        value
+    ):
+
+
+        if value is None:
+
+            return False
+
+
+
+        # جلوگیری از Fragment اشتباه
+        if key == "mesghal_price":
+
+
+            if value < 1_000_000:
+
+                return False
+
+
+
+        if key == "usd_free_rate":
+
+
+            if value < 10_000:
+
+                return False
+
+
+
+        if key == "gold18_price":
+
+
+            if value < 1_000_000:
+
+                return False
+
+
+
+        return True
+
+
+
+    def map_rows(
+        self,
+        rows
+    ):
+
+
+        data = {}
+
+
+
+        for row in rows:
+
+
+            symbol = (
+                row["symbol"]
+                .lower()
+            )
+
+
+            name = (
+                row["name"]
+                .lower()
+            )
+
+
+            price = row["price"]
+
+
+
+            print(
+                "ROW:",
+                symbol,
+                name,
+                price
+            )
+
+
+
+            # --------------------------
+            # مظنه آبشده جهانی
+            # --------------------------
+
+            if (
+
+                "abshode" in symbol
+                or
+                "mesghal" in symbol
+                or
+                "مظنه" in name
+                or
+                "آبشده" in name
+
+            ):
+
+
+                if self.validate_price(
+                    "mesghal_price",
+                    price
+                ):
+
+                    data[
+                        "mesghal_price"
+                    ] = price
+
+
+
+            # --------------------------
+            # دلار آزاد
+            # --------------------------
+
+            if (
+
+                "usd" in symbol
+                or
+                "dollar" in symbol
+                or
+                "دلار" in name
+
+            ):
+
+
+                if self.validate_price(
+                    "usd_free_rate",
+                    price
+                ):
+
+
+                    data[
+                        "usd_free_rate"
+                    ] = price
+
+
+
+        return data
+
+
+
+    def extract_gold18(
+        self,
+        payload
+    ):
+
+
+        patterns = [
+
+
+            r'"lastPrice":("?)([\d\.]+)\1',
+
+
+            r'"price":("?)([\d\.]+)\1',
+
+
+            r'"value":("?)([\d\.]+)\1'
+
+
+        ]
+
+
+
+        for pattern in patterns:
+
+
+            matches = re.findall(
+                pattern,
+                payload
+            )
+
+
+            for match in matches:
+
+
+                if isinstance(match, tuple):
+
+                    value = match[-1]
+
+                else:
+
+                    value = match
+
+
+
+                value = self.clean(
+                    value
+                )
+
+
+                if self.validate_price(
+                    "gold18_price",
+                    value
+                ):
+
+                    return value
+
+
+
+        return None
