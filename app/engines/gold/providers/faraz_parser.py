@@ -5,167 +5,90 @@ from typing import Dict, Any
 
 class FarazParser:
     """
-    Faraz.io Next.js Payload Parser
+    Faraz.io Next.js Market Parser
 
-    Debug version:
-    - Extract Next.js payloads
-    - Inspect payload structure
-    - Find gold related data
-    - Return ARPI compatible fields
+    Extract:
+    - Global gold
+    - Iran gold market
+    - Coins
+    - USD market
+
+    Compatible with GoldNormalizer
     """
-
-
-    SEARCH_KEYS = [
-
-        "xau",
-        "gold",
-        "ounce",
-        "usd",
-        "dollar",
-        "coin",
-        "emami",
-        "bahar",
-        "mesghal",
-        "price",
-        "value",
-        "last"
-
-    ]
-
-
 
     def parse(
         self,
         html: str
     ) -> Dict[str, Any]:
 
-
         result = {}
-
 
         try:
 
+            payloads = self._extract_next_payloads(html)
 
-            payloads = self._extract_next_payloads(
-                html
-            )
-
-
-            print(
-                "######## FARAZ PARSER DEBUG ########"
-            )
-
-            print(
-                "PAYLOAD COUNT:",
-                len(payloads)
-            )
-
+            print("######## FARAZ PARSER DEBUG ########")
+            print("PAYLOAD COUNT:", len(payloads))
 
 
             for index, payload in enumerate(payloads):
 
-
-                lower = payload.lower()
-
-
-                found = []
+                text = payload.lower()
 
 
-                for key in self.SEARCH_KEYS:
+                keys = []
 
-                    if key in lower:
+                for key in [
+                    "gold",
+                    "usd",
+                    "price",
+                    "last",
+                    "rows"
+                ]:
 
-                        found.append(key)
+                    if key in text:
+                        keys.append(key)
 
 
-
-                if found:
-
+                if keys:
 
                     print(
-                        "PAYLOAD",
-                        index,
-                        "KEYS:",
-                        found
+                        f"PAYLOAD {index} KEYS:",
+                        keys
                     )
 
 
+                #
+                # Global gold extraction
+                #
+
+                global_gold = self._extract_xau(payload)
+
+                if global_gold:
+
+                    result["xau_usd"] = global_gold
+
+
+
+                #
+                # Market rows extraction
+                #
+
+                rows = self._extract_rows(payload)
+
+
+                if rows:
+
                     print(
-                        "PAYLOAD SAMPLE:",
-                        payload[:1200]
+                        "FOUND MARKET ROWS:",
+                        len(rows)
                     )
 
 
-                    print(
-                        "--------------------------------"
-                    )
-
-
-
-                extracted = self._extract_numbers(
-                    payload
-                )
-
-
-                if extracted:
-
-                    print(
-                        "EXTRACTED:",
-                        extracted
-                    )
-
+                    market_data = self._map_rows(rows)
 
                     result.update(
-                        extracted
-                    )
-
-
-
-
-            # __NEXT_DATA__ fallback
-
-            next_data = re.search(
-
-                r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
-
-                html,
-
-                re.DOTALL
-
-            )
-
-
-            if next_data:
-
-
-                try:
-
-                    data = json.loads(
-                        next_data.group(1)
-                    )
-
-
-                    recursive = self._extract_recursive(
-                        data
-                    )
-
-
-                    print(
-                        "NEXT_DATA RESULT:",
-                        recursive
-                    )
-
-
-                    result.update(
-                        recursive
-                    )
-
-
-                except Exception as e:
-
-                    print(
-                        "NEXT_DATA ERROR:",
-                        e
+                        market_data
                     )
 
 
@@ -174,7 +97,6 @@ class FarazParser:
                 "PARSER RESULT:",
                 result
             )
-
 
             print(
                 "####################################"
@@ -187,15 +109,12 @@ class FarazParser:
 
         except Exception as e:
 
-
             print(
                 "Faraz Parser Error:",
                 str(e)
             )
 
-
             return {}
-
 
 
 
@@ -204,167 +123,225 @@ class FarazParser:
         html: str
     ):
 
+        return re.findall(
+            r'self\.__next_f\.push\((.*?)\)</script>',
+            html,
+            re.DOTALL
+        )
+
+
+
+    def _extract_xau(
+        self,
+        text: str
+    ):
+
+        patterns = [
+
+            r'"xau[^0-9]{0,30}([0-9]{3,6})',
+
+            r'"ounce[^0-9]{0,30}([0-9]{3,6})',
+
+        ]
+
+
+        for pattern in patterns:
+
+            match = re.search(
+                pattern,
+                text,
+                re.IGNORECASE
+            )
+
+            if match:
+
+                try:
+                    return float(
+                        match.group(1)
+                    )
+
+                except:
+                    pass
+
+
+        return None
+
+
+
+    def _extract_rows(
+        self,
+        text: str
+    ):
+
+        rows = []
+
 
         matches = re.findall(
 
-            r'self\.__next_f\.push\((.*?)\)</script>',
+            r'\{"id":\d+,"symbol":"(.*?)".*?"lastPrice":"(.*?)".*?"change":"(.*?)".*?"changePercent":"(.*?)".*?"trend":"(.*?)".*?\}',
 
-            html,
-
-            re.DOTALL
+            text
 
         )
 
 
-        return matches
+        for item in matches:
+
+            symbol, price, change, percent, trend = item
+
+
+            rows.append({
+
+                "symbol": symbol,
+
+                "lastPrice": price,
+
+                "change": change,
+
+                "changePercent": percent,
+
+                "trend": trend
+
+            })
+
+
+        return rows
 
 
 
-
-    def _extract_numbers(
+    def _clean_number(
         self,
-        text: str
-    ) -> Dict:
+        value
+    ):
+
+        if value is None:
+
+            return None
 
 
-        values = {}
+        try:
 
-
-
-        patterns = {
-
-
-            "xau_usd":
-
-            r'(?:xau|ounce|gold)[^0-9]{0,50}([0-9]{3,6})',
-
-
-
-            "gold18_price":
-
-            r'(?:gold18|18)[^0-9]{0,50}([0-9]{6,12})',
-
-
-
-            "mesghal_price":
-
-            r'(?:mesghal)[^0-9]{0,50}([0-9]{6,12})',
-
-
-
-            "coin_emami":
-
-            r'(?:emami)[^0-9]{0,50}([0-9]{6,12})',
-
-
-
-            "coin_bahar":
-
-            r'(?:bahar)[^0-9]{0,50}([0-9]{6,12})',
-
-
-
-            "usd_free_rate":
-
-            r'(?:usd|dollar)[^0-9]{0,50}([0-9]{4,8})'
-
-
-        }
-
-
-
-        for name, pattern in patterns.items():
-
-
-            match = re.search(
-
-                pattern,
-
-                text,
-
-                re.IGNORECASE
-
+            value = (
+                str(value)
+                .replace(",", "")
+                .replace(" ", "")
             )
 
 
-            if match:
+            return float(value)
 
 
-                try:
+        except:
 
-                    values[name] = float(
-                        match.group(1)
-                    )
-
-
-                except:
-
-                    pass
+            return None
 
 
 
-        return values
-
-
-
-
-    def _extract_recursive(
+    def _map_rows(
         self,
-        obj
+        rows
     ) -> Dict:
 
 
         result = {}
 
 
-
-        if isinstance(obj, dict):
-
-
-            for key, value in obj.items():
+        for row in rows:
 
 
-                key_lower = str(key).lower()
+            symbol = row["symbol"].lower()
 
 
-
-                if isinstance(
-                    value,
-                    (int, float)
-                ):
+            price = self._clean_number(
+                row["lastPrice"]
+            )
 
 
-                    if any(
-                        k in key_lower
-                        for k in self.SEARCH_KEYS
-                    ):
-
-                        result[key] = value
+            change = self._clean_number(
+                row["change"]
+            )
 
 
+            #
+            # Gold 18 Iran
+            #
 
-                else:
+            if any(
+                x in symbol
+                for x in [
+                    "geram18",
+                    "gold18",
+                    "geramtil",
+                    "geram"
+                ]
+            ):
 
-
-                    result.update(
-                        self._extract_recursive(
-                            value
-                        )
-                    )
+                result["gold18_price"] = price
 
 
 
-        elif isinstance(obj, list):
+            #
+            # Mesghal
+            #
+
+            if any(
+                x in symbol
+                for x in [
+                    "mesghal",
+                    "abshode"
+                ]
+            ):
+
+                result["mesghal_price"] = price
 
 
-            for item in obj:
+
+            #
+            # USD
+            #
+
+            if any(
+                x in symbol
+                for x in [
+                    "usd",
+                    "dollar",
+                    "harat"
+                ]
+            ):
+
+                result["usd_free_rate"] = price
 
 
-                result.update(
-                    self._extract_recursive(
-                        item
-                    )
-                )
+
+                if change is not None:
+
+                    result["usd_change"] = change
+
+
+
+            #
+            # Coins
+            #
+
+            if "emami" in symbol:
+
+                result["coin_emami"] = price
+
+
+
+            if "bahar" in symbol:
+
+                result["coin_bahar"] = price
+
+
+
+            #
+            # Daily change
+            #
+
+            if change is not None:
+
+                result["gold_daily_change"] = change
 
 
 
