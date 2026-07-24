@@ -7,15 +7,16 @@ class FarazParser:
     """
     Faraz.io Next.js Payload Parser
 
-    Safe Discovery Version
-
-    Purpose:
-    - Extract Next.js payload
-    - Discover market data
-    - No heavy processing
+    Debug version:
+    - Extract Next.js payloads
+    - Inspect payload structure
+    - Find gold related data
+    - Return ARPI compatible fields
     """
 
+
     SEARCH_KEYS = [
+
         "xau",
         "gold",
         "ounce",
@@ -25,8 +26,12 @@ class FarazParser:
         "emami",
         "bahar",
         "mesghal",
-        "price"
+        "price",
+        "value",
+        "last"
+
     ]
+
 
 
     def parse(
@@ -34,19 +39,21 @@ class FarazParser:
         html: str
     ) -> Dict[str, Any]:
 
+
         result = {}
 
+
         try:
+
+
+            payloads = self._extract_next_payloads(
+                html
+            )
+
 
             print(
                 "######## FARAZ PARSER DEBUG ########"
             )
-
-
-            payloads = self._extract_payloads(
-                html
-            )
-
 
             print(
                 "PAYLOAD COUNT:",
@@ -54,13 +61,11 @@ class FarazParser:
             )
 
 
-            for i, payload in enumerate(payloads):
+
+            for index, payload in enumerate(payloads):
 
 
-                text = payload
-
-
-                lower = text.lower()
+                lower = payload.lower()
 
 
                 found = []
@@ -78,27 +83,90 @@ class FarazParser:
 
 
                     print(
-
                         "PAYLOAD",
-
-                        i,
-
+                        index,
                         "KEYS:",
+                        found
+                    )
 
-                        found[:5]
 
+                    print(
+                        "PAYLOAD SAMPLE:",
+                        payload[:1200]
+                    )
+
+
+                    print(
+                        "--------------------------------"
                     )
 
 
 
-                extracted = self._extract_values(
-                    text
+                extracted = self._extract_numbers(
+                    payload
                 )
 
 
-                result.update(
-                    extracted
-                )
+                if extracted:
+
+                    print(
+                        "EXTRACTED:",
+                        extracted
+                    )
+
+
+                    result.update(
+                        extracted
+                    )
+
+
+
+
+            # __NEXT_DATA__ fallback
+
+            next_data = re.search(
+
+                r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
+
+                html,
+
+                re.DOTALL
+
+            )
+
+
+            if next_data:
+
+
+                try:
+
+                    data = json.loads(
+                        next_data.group(1)
+                    )
+
+
+                    recursive = self._extract_recursive(
+                        data
+                    )
+
+
+                    print(
+                        "NEXT_DATA RESULT:",
+                        recursive
+                    )
+
+
+                    result.update(
+                        recursive
+                    )
+
+
+                except Exception as e:
+
+                    print(
+                        "NEXT_DATA ERROR:",
+                        e
+                    )
 
 
 
@@ -130,20 +198,16 @@ class FarazParser:
 
 
 
-    def _extract_payloads(
+
+    def _extract_next_payloads(
         self,
         html: str
     ):
 
 
-        pattern = (
-            r'self\.__next_f\.push\((.*?)\)'
-        )
-
-
         matches = re.findall(
 
-            pattern,
+            r'self\.__next_f\.push\((.*?)\)</script>',
 
             html,
 
@@ -156,7 +220,8 @@ class FarazParser:
 
 
 
-    def _extract_values(
+
+    def _extract_numbers(
         self,
         text: str
     ) -> Dict:
@@ -171,32 +236,38 @@ class FarazParser:
 
             "xau_usd":
 
-            r'(?:xau|ounce)[^0-9]{0,50}'
-            r'([0-9]{3,6})',
+            r'(?:xau|ounce|gold)[^0-9]{0,50}([0-9]{3,6})',
+
 
 
             "gold18_price":
 
-            r'(?:gold18|18k)[^0-9]{0,50}'
-            r'([0-9]{6,12})',
+            r'(?:gold18|18)[^0-9]{0,50}([0-9]{6,12})',
+
 
 
             "mesghal_price":
 
-            r'mesghal[^0-9]{0,50}'
-            r'([0-9]{6,12})',
+            r'(?:mesghal)[^0-9]{0,50}([0-9]{6,12})',
+
 
 
             "coin_emami":
 
-            r'emami[^0-9]{0,50}'
-            r'([0-9]{6,12})',
+            r'(?:emami)[^0-9]{0,50}([0-9]{6,12})',
+
 
 
             "coin_bahar":
 
-            r'bahar[^0-9]{0,50}'
-            r'([0-9]{6,12})'
+            r'(?:bahar)[^0-9]{0,50}([0-9]{6,12})',
+
+
+
+            "usd_free_rate":
+
+            r'(?:usd|dollar)[^0-9]{0,50}([0-9]{4,8})'
+
 
         }
 
@@ -225,10 +296,76 @@ class FarazParser:
                         match.group(1)
                     )
 
-                except Exception:
+
+                except:
 
                     pass
 
 
 
         return values
+
+
+
+
+    def _extract_recursive(
+        self,
+        obj
+    ) -> Dict:
+
+
+        result = {}
+
+
+
+        if isinstance(obj, dict):
+
+
+            for key, value in obj.items():
+
+
+                key_lower = str(key).lower()
+
+
+
+                if isinstance(
+                    value,
+                    (int, float)
+                ):
+
+
+                    if any(
+                        k in key_lower
+                        for k in self.SEARCH_KEYS
+                    ):
+
+                        result[key] = value
+
+
+
+                else:
+
+
+                    result.update(
+                        self._extract_recursive(
+                            value
+                        )
+                    )
+
+
+
+        elif isinstance(obj, list):
+
+
+            for item in obj:
+
+
+                result.update(
+                    self._extract_recursive(
+                        item
+                    )
+                )
+
+
+
+        return result
