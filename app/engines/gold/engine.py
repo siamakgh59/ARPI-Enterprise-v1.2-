@@ -1,76 +1,261 @@
-from .models import GoldData, GoldReport
-from .validator import GoldValidator
-from .calculator import GoldCalculator
+from datetime import datetime
+from typing import Dict, Any, List
+
+from app.engines.gold.scoring import GoldScoringEngine
 
 
-class GoldEngine:
+class GoldIntelligenceEngine:
     """
-    Core Gold Intelligence Engine
+    ARPI Gold Intelligence Engine
 
-    Flow:
-
-    GoldData
-        ↓
-    Validator
-        ↓
-    Calculator
-        ↓
-    GoldReport
+    Responsible for:
+    - Gold market intelligence
+    - Score calculation
+    - Signal generation
+    - Confidence estimation
+    - Data quality awareness
     """
+
+
+    VERSION = "2.0.0"
 
 
     def __init__(self):
-
-        self.validator = GoldValidator()
-
-        self.calculator = GoldCalculator()
-
+        self.scorer = GoldScoringEngine()
 
 
     def analyze(
         self,
-        data: GoldData
-    ) -> GoldReport:
+        data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
-        Analyze gold market conditions
+        Analyze normalized gold data.
         """
 
+        total_inputs = [
+            "xau_usd",
+            "dxy",
+            "us10y_yield",
+            "usd_free_rate",
+            "usd_change",
+            "gold18_price",
+            "mesghal_price",
+            "coin_emami",
+            "coin_bahar",
+            "coin_bubble",
+            "gold_daily_change",
+            "volume",
+        ]
 
-        factors = data.model_dump()
+
+        available_inputs = [
+            key for key in total_inputs
+            if data.get(key) is not None
+        ]
 
 
-        validation = self.validator.validate(
-            factors
+        missing_inputs = [
+            key for key in total_inputs
+            if data.get(key) is None
+        ]
+
+
+        available_count = len(
+            available_inputs
         )
 
 
-        result = self.calculator.calculate(
-            validation["validated_data"]
+        total_count = len(
+            total_inputs
         )
 
 
-        return GoldReport(
+        # -----------------------------
+        # Data Quality
+        # -----------------------------
 
-            engine="Gold Intelligence Engine",
+        if available_count == total_count:
 
-            version="1.0.0",
+            data_quality = "GOOD"
 
-            gold_score=result["gold_score"],
+        elif available_count >= 5:
 
-            trend=result["trend"],
+            data_quality = "PARTIAL"
 
-            signal=result["signal"],
+        else:
 
-            confidence=result["confidence"],
+            data_quality = "LOW"
 
-            drivers=result["drivers"],
 
-            risks=result["risks"],
 
-            data_quality=validation["data_quality"],
+        # -----------------------------
+        # Core Scoring
+        # -----------------------------
 
-            available_inputs=validation["available_inputs"],
+        try:
 
-            missing_inputs=validation["missing_inputs"]
+            score_result = self.scorer.analyze(
+                data
+            )
 
+
+            gold_score = score_result.get(
+                "gold_score",
+                50
+            )
+
+
+            drivers = score_result.get(
+                "drivers",
+                []
+            )
+
+
+            risks = score_result.get(
+                "risks",
+                []
+            )
+
+
+        except Exception as e:
+
+            gold_score = 50
+
+            drivers = []
+
+            risks = [
+                f"scoring_error:{str(e)}"
+            ]
+
+
+
+        # -----------------------------
+        # Signal Logic
+        # -----------------------------
+
+        if gold_score >= 80:
+
+            signal = "STRONG BUY"
+
+            trend = "BULLISH"
+
+
+        elif gold_score >= 65:
+
+            signal = "BUY"
+
+            trend = "BULLISH"
+
+
+        elif gold_score <= 35:
+
+            signal = "SELL"
+
+            trend = "BEARISH"
+
+
+        else:
+
+            signal = "HOLD"
+
+            trend = "NEUTRAL"
+
+
+
+        # -----------------------------
+        # Confidence Model
+        # -----------------------------
+
+        base_confidence = (
+            available_count /
+            total_count
+        ) * 100
+
+
+        confidence = int(
+            min(
+                95,
+                max(
+                    20,
+                    base_confidence
+                )
+            )
         )
+
+
+        # کاهش اعتماد در دیتای ناقص
+
+        if data_quality == "LOW":
+
+            confidence = min(
+                confidence,
+                40
+            )
+
+
+        elif data_quality == "PARTIAL":
+
+            confidence = min(
+                confidence,
+                70
+            )
+
+
+
+        return {
+
+            "engine":
+                "Gold Intelligence Engine",
+
+
+            "version":
+                self.VERSION,
+
+
+            "gold_score":
+                round(
+                    gold_score,
+                    2
+                ),
+
+
+            "trend":
+                trend,
+
+
+            "signal":
+                signal,
+
+
+            "confidence":
+                confidence,
+
+
+            "drivers":
+                drivers,
+
+
+            "risks":
+                risks,
+
+
+            "data_quality":
+                data_quality,
+
+
+            "available_inputs":
+                available_count,
+
+
+            "missing_inputs":
+                missing_inputs,
+
+
+            "available_fields":
+                available_inputs,
+
+
+            "timestamp":
+                datetime.utcnow()
+
+        }
