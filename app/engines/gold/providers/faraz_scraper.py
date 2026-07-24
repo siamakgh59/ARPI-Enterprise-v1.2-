@@ -1,103 +1,187 @@
-# app/engines/gold/providers/faraz_scraper.py
-
-import httpx
 import re
+import json
+import html as html_lib
+from typing import Dict, Any
 
 
-class FarazScraper:
+class FarazParser:
     """
-    Faraz.io Gold Market Scraper
+    Faraz.io Next.js Payload Discovery Parser
 
-    Responsibility:
-    - Fetch gold market page
-    - Collect raw HTML
-    - Detect Next.js payloads
-    - Provide raw source for parser
+    Phase:
+    Discovery / Extraction
 
-    No parsing logic here.
+    Goal:
+    Decode self.__next_f payloads
+    and discover real market objects.
     """
 
-    def __init__(self):
+    SEARCH_KEYS = [
 
-        self.url = (
-            "https://faraz.io/markets/gold-currency"
-        )
+        "xau",
+        "gold",
+        "ounce",
+        "usd",
+        "dollar",
+        "coin",
+        "emami",
+        "bahar",
+        "mesghal",
+        "price",
+        "market"
 
-        self.headers = {
-
-            "User-Agent":
-                (
-                    "Mozilla/5.0 "
-                    "(Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 "
-                    "Chrome/120 Safari/537.36"
-                ),
-
-            "Accept-Language":
-                "fa-IR,fa;q=0.9,en;q=0.8"
-
-        }
+    ]
 
 
 
-    def fetch_page(self):
+    def parse(
+        self,
+        html: str
+    ) -> Dict[str, Any]:
+
+
+        result = {}
+
 
         try:
 
-            response = httpx.get(
-
-                self.url,
-
-                timeout=20,
-
-                headers=self.headers
-
-            )
-
-
-            response.raise_for_status()
-
-
-            html = response.text
-
-
 
             print(
-                "######## FARAZ GOLD SCRAPER DEBUG ########"
+                "######## FARAZ PARSER DEBUG ########"
             )
 
 
-            print(
-
-                "URL:",
-
-                self.url
-
-            )
-
-
-            print(
-
-                "HTML LENGTH:",
-
-                len(html)
-
-            )
-
-
-
-            self._detect_markers(
+            payloads = self._extract_next_payloads(
                 html
             )
 
 
             print(
-                "##########################################"
+                "NEXT PAYLOAD COUNT:",
+                len(payloads)
             )
 
 
 
-            return html
+            decoded_blocks = []
+
+
+
+            for index, payload in enumerate(payloads):
+
+
+                decoded = self._decode_payload(
+                    payload
+                )
+
+
+                decoded_blocks.append(
+                    decoded
+                )
+
+
+
+                lower = decoded.lower()
+
+
+
+                found = []
+
+
+                for key in self.SEARCH_KEYS:
+
+                    if key in lower:
+
+                        found.append(
+                            key
+                        )
+
+
+
+                if found:
+
+                    print(
+
+                        "PAYLOAD",
+
+                        index,
+
+                        "FOUND:",
+
+                        found
+
+                    )
+
+
+
+                    # Print small sample
+
+                    position = lower.find(
+                        found[0]
+                    )
+
+
+                    if position >= 0:
+
+
+                        start = max(
+                            0,
+                            position - 100
+                        )
+
+
+                        end = min(
+                            len(decoded),
+                            position + 300
+                        )
+
+
+                        print(
+                            "SAMPLE:",
+                            decoded[start:end]
+                        )
+
+
+
+            print(
+                "#####################################"
+            )
+
+
+
+            # Try extracting numbers
+            # after decoding
+
+
+            for block in decoded_blocks:
+
+
+                extracted = self._extract_numbers(
+                    block
+                )
+
+
+                result.update(
+                    extracted
+                )
+
+
+
+            print(
+
+                "PARSER RESULT:",
+
+                result
+
+            )
+
+
+            print(
+                "#####################################"
+            )
+
+
+            return result
 
 
 
@@ -106,90 +190,178 @@ class FarazScraper:
 
             print(
 
-                "Faraz Scraper Error:",
+                "Faraz Parser Error:",
 
                 str(e)
 
             )
 
 
-            return {
-
-                "error":
-
-                    str(e)
-
-            }
+            return {}
 
 
 
-    def _detect_markers(
+    def _extract_next_payloads(
         self,
         html: str
     ):
 
-        """
-        Detect embedded application data
-        """
 
+        return re.findall(
 
+            r'self\.__next_f\.push\((.*?)\)</script>',
 
-        markers = [
+            html,
 
-            "__NEXT_DATA__",
+            re.DOTALL
 
-            "self.__next_f",
-
-            "props",
-
-            "initialState",
-
-            "market",
-
-            "gold",
-
-            "xau"
-
-        ]
-
-
-
-        print(
-            "MARKERS:"
         )
 
 
 
-        for marker in markers:
+    def _decode_payload(
+        self,
+        payload: str
+    ) -> str:
 
 
-            if marker in html:
+        try:
 
 
-                print(
+            text = payload
 
-                    "FOUND:",
 
-                    marker
 
+            text = html_lib.unescape(
+                text
+            )
+
+
+
+            # Remove wrapping quotes
+
+            if (
+                text.startswith('"')
+                and
+                text.endswith('"')
+            ):
+
+
+                text = json.loads(
+                    text
                 )
 
 
 
-        payloads = re.findall(
-
-            r'self\.__next_f\.push',
-
-            html
-
-        )
+            return text
 
 
 
-        print(
+        except Exception:
 
-            "NEXT STREAM COUNT:",
 
-            len(payloads)
+            return payload
 
-        )
+
+
+    def _extract_numbers(
+        self,
+        text: str
+    ) -> Dict:
+
+
+        values = {}
+
+
+
+        patterns = {
+
+
+            "xau_usd":
+
+            [
+                r'xau.{0,50}?(\d{3,6})',
+                r'ounce.{0,50}?(\d{3,6})'
+            ],
+
+
+            "gold18_price":
+
+            [
+                r'gold18.{0,50}?(\d{6,12})',
+                r'18.{0,50}?(\d{6,12})'
+            ],
+
+
+            "mesghal_price":
+
+            [
+                r'mesghal.{0,50}?(\d{6,12})'
+            ],
+
+
+            "coin_emami":
+
+            [
+                r'emami.{0,50}?(\d{6,12})'
+            ],
+
+
+            "coin_bahar":
+
+            [
+                r'bahar.{0,50}?(\d{6,12})'
+            ],
+
+
+            "usd_free_rate":
+
+            [
+                r'usd.{0,50}?(\d{4,8})',
+                r'dollar.{0,50}?(\d{4,8})'
+            ]
+
+        }
+
+
+
+        for name, regex_list in patterns.items():
+
+
+            for pattern in regex_list:
+
+
+                match = re.search(
+
+                    pattern,
+
+                    text,
+
+                    re.IGNORECASE
+
+                )
+
+
+                if match:
+
+
+                    try:
+
+
+                        values[name] = float(
+
+                            match.group(1)
+
+                        )
+
+
+                        break
+
+
+                    except Exception:
+
+                        pass
+
+
+
+        return values
