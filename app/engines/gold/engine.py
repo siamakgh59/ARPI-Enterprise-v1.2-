@@ -1,7 +1,5 @@
 from datetime import datetime
-from typing import Dict, Any, List
-
-from app.engines.gold.scoring import GoldScoringEngine
+from typing import Dict, Any
 
 
 class GoldIntelligenceEngine:
@@ -16,12 +14,11 @@ class GoldIntelligenceEngine:
     - Data quality awareness
     """
 
-
     VERSION = "2.0.0"
 
 
     def __init__(self):
-        self.scorer = GoldScoringEngine()
+        pass
 
 
     def analyze(
@@ -49,13 +46,15 @@ class GoldIntelligenceEngine:
 
 
         available_inputs = [
-            key for key in total_inputs
+            key
+            for key in total_inputs
             if data.get(key) is not None
         ]
 
 
         missing_inputs = [
-            key for key in total_inputs
+            key
+            for key in total_inputs
             if data.get(key) is None
         ]
 
@@ -63,7 +62,6 @@ class GoldIntelligenceEngine:
         available_count = len(
             available_inputs
         )
-
 
         total_count = len(
             total_inputs
@@ -89,43 +87,78 @@ class GoldIntelligenceEngine:
 
 
         # -----------------------------
-        # Core Scoring
+        # Temporary Core Scoring
+        # until GoldScoringEngine
+        # is integrated
         # -----------------------------
 
-        try:
+        gold_score = 50
 
-            score_result = self.scorer.analyze(
-                data
+        drivers = []
+
+        risks = []
+
+
+        gold18 = data.get(
+            "gold18_price"
+        )
+
+        mesghal = data.get(
+            "mesghal_price"
+        )
+
+
+        if gold18 is not None:
+
+            drivers.append(
+                "gold18_price_available"
             )
 
+            gold_score += 5
 
-            gold_score = score_result.get(
-                "gold_score",
-                50
+
+        if mesghal is not None:
+
+            drivers.append(
+                "mesghal_price_available"
             )
 
+            gold_score += 5
 
-            drivers = score_result.get(
-                "drivers",
-                []
+
+        daily_change = data.get(
+            "gold_daily_change"
+        )
+
+
+        if daily_change is not None:
+
+            if daily_change > 0:
+
+                drivers.append(
+                    "positive_daily_gold_change"
+                )
+
+                gold_score += 10
+
+
+            elif daily_change < 0:
+
+                risks.append(
+                    "negative_daily_gold_change"
+                )
+
+                gold_score -= 10
+
+
+
+        gold_score = max(
+            0,
+            min(
+                100,
+                gold_score
             )
-
-
-            risks = score_result.get(
-                "risks",
-                []
-            )
-
-
-        except Exception as e:
-
-            gold_score = 50
-
-            drivers = []
-
-            risks = [
-                f"scoring_error:{str(e)}"
-            ]
+        )
 
 
 
@@ -136,54 +169,48 @@ class GoldIntelligenceEngine:
         if gold_score >= 80:
 
             signal = "STRONG BUY"
-
             trend = "BULLISH"
 
 
         elif gold_score >= 65:
 
             signal = "BUY"
-
             trend = "BULLISH"
 
 
         elif gold_score <= 35:
 
             signal = "SELL"
-
             trend = "BEARISH"
 
 
         else:
 
             signal = "HOLD"
-
             trend = "NEUTRAL"
 
 
 
         # -----------------------------
-        # Confidence Model
+        # Confidence
         # -----------------------------
 
-        base_confidence = (
-            available_count /
-            total_count
-        ) * 100
-
-
         confidence = int(
-            min(
-                95,
-                max(
-                    20,
-                    base_confidence
-                )
-            )
+            (
+                available_count /
+                total_count
+            ) * 100
         )
 
 
-        # کاهش اعتماد در دیتای ناقص
+        confidence = min(
+            95,
+            max(
+                20,
+                confidence
+            )
+        )
+
 
         if data_quality == "LOW":
 
