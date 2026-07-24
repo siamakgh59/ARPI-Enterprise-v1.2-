@@ -1,29 +1,45 @@
-# app/engines/gold/providers/faraz_scraper.py
-
 import httpx
 import re
 
 
 class FarazScraper:
     """
-    Faraz.io Gold Market Scraper
+    Faraz.io Gold Market Multi Page Scraper
+
+    Sources:
+
+    1) Gold Currency Market
+       - Mesghal
+       - USD
+       - Coins
+
+    2) Gold 18K Page
+       - Gold18 price
+
 
     Responsibility:
-    - Fetch gold market page
-    - Collect raw HTML
-    - Detect Next.js payloads
-    - Provide raw source for parser
-
-    No parsing logic here.
+    ONLY fetching HTML.
+    No parsing logic.
     """
+
+
 
     def __init__(self):
 
-        self.url = (
-            "https://faraz.io/markets/gold-currency"
-        )
+        self.urls = {
+
+            "market":
+                "https://faraz.io/markets/gold-currency",
+
+
+            "gold18":
+                "https://faraz.io/markets/gold-currency/geramTalaHejdah"
+
+        }
+
 
         self.headers = {
+
 
             "User-Agent":
                 (
@@ -33,20 +49,88 @@ class FarazScraper:
                     "Chrome/120 Safari/537.36"
                 ),
 
+
             "Accept-Language":
                 "fa-IR,fa;q=0.9,en;q=0.8"
+
 
         }
 
 
 
+
     def fetch_page(self):
+
+        """
+        Backward compatibility
+        """
+
+        return self.fetch_market()
+
+
+
+    def fetch_market(self):
+
+
+        return self._fetch(
+
+            self.urls["market"]
+
+        )
+
+
+
+
+    def fetch_gold18(self):
+
+
+        return self._fetch(
+
+            self.urls["gold18"]
+
+        )
+
+
+
+
+
+    def fetch_all(self):
+
+        """
+        Fetch all Faraz sources
+        """
+
+
+        return {
+
+
+            "market":
+
+                self.fetch_market(),
+
+
+            "gold18":
+
+                self.fetch_gold18()
+
+
+        }
+
+
+
+
+    def _fetch(
+        self,
+        url
+    ):
+
 
         try:
 
+
             response = httpx.get(
 
-                self.url,
+                url,
 
                 timeout=20,
 
@@ -58,30 +142,25 @@ class FarazScraper:
             response.raise_for_status()
 
 
+
             html = response.text
 
 
 
             print(
-                "######## FARAZ GOLD SCRAPER DEBUG ########"
+                "######## FARAZ SCRAPER DEBUG ########"
             )
 
 
             print(
-
                 "URL:",
-
-                self.url
-
+                url
             )
 
 
             print(
-
                 "HTML LENGTH:",
-
                 len(html)
-
             )
 
 
@@ -92,7 +171,7 @@ class FarazScraper:
 
 
             print(
-                "##########################################"
+                "######################################"
             )
 
 
@@ -101,15 +180,13 @@ class FarazScraper:
 
 
 
+
         except Exception as e:
 
 
             print(
-
                 "Faraz Scraper Error:",
-
-                str(e)
-
+                e
             )
 
 
@@ -123,32 +200,27 @@ class FarazScraper:
 
 
 
+
+
     def _detect_markers(
         self,
-        html: str
+        html
     ):
-
-        """
-        Detect embedded application data
-        """
-
 
 
         markers = [
 
-            "__NEXT_DATA__",
-
             "self.__next_f",
 
-            "props",
-
-            "initialState",
+            "__NEXT_DATA__",
 
             "market",
 
             "gold",
 
-            "xau"
+            "price",
+
+            "rows"
 
         ]
 
@@ -157,7 +229,6 @@ class FarazScraper:
         print(
             "MARKERS:"
         )
-
 
 
         for marker in markers:
@@ -176,11 +247,15 @@ class FarazScraper:
 
 
 
-        payloads = re.findall(
+        count = len(
 
-            r'self\.__next_f\.push',
+            re.findall(
 
-            html
+                r"self\.__next_f\.push",
+
+                html
+
+            )
 
         )
 
@@ -190,6 +265,6 @@ class FarazScraper:
 
             "NEXT STREAM COUNT:",
 
-            len(payloads)
+            count
 
         )
