@@ -6,15 +6,17 @@ from typing import Dict, Any
 class FarazParser:
 
     """
-    Faraz Gold Parser V24
+    Faraz Gold Parser V25
 
     Supports:
-    - market gold-currency page
-    - gold18 detail page
+    - Faraz gold-currency market
+    - Gold 18 detail page
 
     Extract:
     - mesghal_price
     - usd_free_rate
+    - coin_emami
+    - coin_bahar
     - gold18_price
     - volume
     - daily change
@@ -27,17 +29,16 @@ class FarazParser:
         source: str = "market"
     ) -> Dict[str, Any]:
 
-
         result = {}
 
-        print("######## FARAZ PARSER V24 DEBUG ########")
+        print("######## FARAZ PARSER V25 DEBUG ########")
         print("SOURCE:", source)
 
 
         try:
 
             payloads = re.findall(
-                r'self\.__next_f\.push\((.*?)\)</script>',
+                r'self\.__next_f\.push$begin:math:text$\(\.\*\?\)$end:math:text$</script>',
                 html,
                 re.DOTALL
             )
@@ -49,25 +50,46 @@ class FarazParser:
             )
 
 
-            for i,payload in enumerate(payloads):
+            for index, payload in enumerate(payloads):
 
 
-                if (
-                    "rows" in payload
-                    or
-                    "marketItem" in payload
-                    or
-                    "lastPrice" in payload
-                ):
+                if source == "market":
 
 
-                    print(
-                        "ACTIVE PAYLOAD:",
-                        i
-                    )
+                    if (
+                        "rows" in payload
+                    ):
 
 
-                    decoded = self.decode_payload(
+                        print(
+                            "MARKET PAYLOAD:",
+                            index
+                        )
+
+
+                        decoded = self.decode(
+                            payload
+                        )
+
+
+                        if decoded:
+
+
+                            data = self.extract_rows(
+                                decoded
+                            )
+
+
+                            result.update(
+                                data
+                            )
+
+
+
+                elif source == "gold18":
+
+
+                    decoded = self.decode(
                         payload
                     )
 
@@ -75,22 +97,14 @@ class FarazParser:
                     if decoded:
 
 
-                        if source=="market":
-
-                            data = self.extract_market(
-                                decoded
-                            )
-
-                            result.update(data)
+                        data = self.extract_gold18(
+                            decoded
+                        )
 
 
-                        if source=="gold18":
-
-                            data = self.extract_gold18(
-                                decoded
-                            )
-
-                            result.update(data)
+                        result.update(
+                            data
+                        )
 
 
 
@@ -119,99 +133,85 @@ class FarazParser:
 
 
 
-    def decode_payload(
+
+    def decode(
         self,
         payload
     ):
 
-
         try:
 
-            start = payload.find(
-                "{"
+            text = (
+                payload
+                .replace(
+                    '\\"',
+                    '"'
+                )
             )
 
-
-            end = payload.rfind(
-                "}"
-            )
+            return text
 
 
-            if start==-1 or end==-1:
+        except:
 
-                return None
-
-
-            raw = payload[start:end+1]
-
-
-            raw = (
-                raw
-                .replace('\\"','"')
-            )
-
-
-            return raw
-
-
-        except Exception as e:
-
-            print(
-                "DECODE ERROR",
-                e
-            )
-
-            return None
+            return payload
 
 
 
 
-    def extract_market(
+    def extract_rows(
         self,
         text
     ):
 
-
-        result={}
-
+        result = {}
 
         try:
 
 
-            rows_match = re.search(
-                r'"rows":(\[.*?\]),"currentPage"',
+            blocks = re.findall(
+                r'"rows":($begin:math:display$\.\*\?$end:math:display$)',
                 text,
                 re.DOTALL
             )
 
 
-            if not rows_match:
-
-                return {}
-
-
-            rows_json = rows_match.group(1)
-
-
-            rows_json = (
-                rows_json
-                .replace('\\"','"')
+            print(
+                "ROWS BLOCKS:",
+                len(blocks)
             )
 
 
-            rows = json.loads(
-                rows_json
-            )
+            all_rows = []
+
+
+            for block in blocks:
+
+                try:
+
+                    rows = json.loads(
+                        block
+                    )
+
+                    all_rows.extend(
+                        rows
+                    )
+
+
+                except:
+
+                    continue
+
 
 
             print(
-                "ROWS:",
-                len(rows)
+                "TOTAL ROWS:",
+                len(all_rows)
             )
 
 
 
-            for row in rows:
+            for row in all_rows:
 
 
                 symbol = (
@@ -236,6 +236,11 @@ class FarazParser:
                 )
 
 
+                change = row.get(
+                    "changePercent"
+                )
+
+
                 print(
                     "ROW:",
                     symbol,
@@ -243,6 +248,9 @@ class FarazParser:
                     price
                 )
 
+
+
+                # مظنه
 
                 if (
                     "abshode" in symbol
@@ -258,10 +266,12 @@ class FarazParser:
 
 
 
+                # دلار
+
                 if (
-                    "harat" in symbol
-                    or
                     "usd" in symbol
+                    or
+                    "harat" in symbol
                 ):
 
                     result[
@@ -270,8 +280,12 @@ class FarazParser:
 
 
 
+                # سکه امامی
+
                 if (
                     "emami" in symbol
+                    or
+                    "emami" in name.lower()
                 ):
 
                     result[
@@ -280,8 +294,12 @@ class FarazParser:
 
 
 
+                # سکه بهار آزادی
+
                 if (
                     "bahar" in symbol
+                    or
+                    "bahar" in name.lower()
                 ):
 
                     result[
@@ -290,15 +308,28 @@ class FarazParser:
 
 
 
-                if (
-                    "changePercent" in row
-                ):
+                if change:
 
-                    result[
-                        "gold_daily_change"
-                    ] = row.get(
-                        "changePercent"
-                    )
+                    try:
+
+                        result[
+                            "gold_daily_change"
+                        ] = float(
+                            str(change)
+                            .replace(
+                                "%",
+                                ""
+                            )
+                            .replace(
+                                "+",
+                                ""
+                            )
+                        )
+
+                    except:
+
+                        pass
+
 
 
             return result
@@ -307,8 +338,9 @@ class FarazParser:
 
         except Exception as e:
 
+
             print(
-                "MARKET ERROR:",
+                "ROWS ERROR:",
                 e
             )
 
@@ -322,15 +354,14 @@ class FarazParser:
         text
     ):
 
-
-        result={}
+        result = {}
 
 
         try:
 
 
             price = re.search(
-                r'"lastPrice\\?":?\\?"?([0-9]+)',
+                r'"price":(\d+)',
                 text
             )
 
@@ -344,8 +375,9 @@ class FarazParser:
                 )
 
 
+
             volume = re.search(
-                r'"volume\\?":?\\?"?([0-9]+)',
+                r'"volume":(\d+)',
                 text
             )
 
@@ -359,8 +391,9 @@ class FarazParser:
                 )
 
 
+
             change = re.search(
-                r'"changePercent\\?":?\\?"?([-0-9\.]+)',
+                r'"changePercent":(-?\d+\.?\d*)',
                 text
             )
 
@@ -374,9 +407,6 @@ class FarazParser:
                 )
 
 
-            return result
-
-
 
         except Exception as e:
 
@@ -385,7 +415,8 @@ class FarazParser:
                 e
             )
 
-            return {}
+
+        return result
 
 
 
@@ -395,12 +426,19 @@ class FarazParser:
         value
     ):
 
-
         try:
+
+            if value is None:
+
+                return None
+
 
             return float(
                 str(value)
-                .replace(",","")
+                .replace(
+                    ",",
+                    ""
+                )
             )
 
 
