@@ -1,27 +1,23 @@
 import re
+import json
+import html
 from typing import Dict, Any
 
 
 class FarazParser:
     """
-    Faraz.io Gold Parser V8
+    Faraz.io Gold Parser V9
 
-    Robust parser for Next.js payload
+    Robust Next.js payload parser
 
     Sources:
     - market
     - gold18
-
-    Extracts:
-    - mesghal_price
-    - usd_free_rate
-    - coin prices
-    - gold18_price
     """
 
     def parse(
         self,
-        html: str,
+        html_source: str,
         source: str = "market"
     ) -> Dict[str, Any]:
 
@@ -30,7 +26,7 @@ class FarazParser:
         try:
 
             print(
-                "######## FARAZ PARSER V8 DEBUG ########"
+                "######## FARAZ PARSER V9 DEBUG ########"
             )
 
             print(
@@ -40,8 +36,8 @@ class FarazParser:
 
 
             payloads = re.findall(
-                r'self\.__next_f\.push\((.*?)\)</script>',
-                html,
+                r'self\.__next_f\.push\((.*?)\)',
+                html_source,
                 re.DOTALL
             )
 
@@ -54,24 +50,36 @@ class FarazParser:
 
             for index, payload in enumerate(payloads):
 
+                decoded = self.decode_payload(
+                    payload
+                )
+
+
+                if index == 0:
+
+                    print(
+                        "DECODE SAMPLE:",
+                        decoded[:300]
+                    )
+
+
 
                 if source == "market":
 
                     if (
-                        "rows" in payload
+                        "lastPrice" in decoded
                         or
-                        "lastPrice" in payload
+                        "rows" in decoded
                     ):
 
-
                         print(
-                            "MARKET PAYLOAD FOUND:",
+                            "MARKET PAYLOAD:",
                             index
                         )
 
 
                         rows = self.extract_rows(
-                            payload
+                            decoded
                         )
 
 
@@ -87,13 +95,11 @@ class FarazParser:
 
 
 
-                elif source == "gold18":
+                if source == "gold18":
 
-
-                    value = self.extract_gold18(
-                        payload
+                    value = self.extract_price(
+                        decoded
                     )
-
 
                     if value:
 
@@ -108,7 +114,6 @@ class FarazParser:
                 result
             )
 
-
             print(
                 "####################################"
             )
@@ -120,7 +125,6 @@ class FarazParser:
 
         except Exception as e:
 
-
             print(
                 "PARSER ERROR:",
                 e
@@ -130,21 +134,35 @@ class FarazParser:
 
 
 
-    def fix_encoding(
+    def decode_payload(
         self,
         text: str
-    ):
+    ) -> str:
 
 
         try:
 
-            if "Ù" in text:
-
-                return (
-                    text
-                    .encode("latin1")
-                    .decode("utf-8")
+            text = (
+                text
+                .encode(
+                    "utf-8"
                 )
+                .decode(
+                    "unicode_escape"
+                )
+            )
+
+
+        except:
+
+            pass
+
+
+        try:
+
+            text = html.unescape(
+                text
+            )
 
 
         except:
@@ -165,54 +183,57 @@ class FarazParser:
         rows = []
 
 
-        # مستقل از ترتیب فیلدها
+        # استخراج هر symbol
 
-        blocks = re.findall(
-            r'\{(.*?)\}',
-            text,
-            re.DOTALL
+        symbols = re.finditer(
+            r'"symbol"\s*:\s*"([^"]+)"',
+            text
         )
 
 
-        for block in blocks:
+        for symbol_match in symbols:
 
 
-            if (
-                "symbol" not in block
-                or
-                "lastPrice" not in block
-            ):
-
-                continue
+            symbol = symbol_match.group(1)
 
 
+            start = max(
+                0,
+                symbol_match.start()-200
+            )
 
-            symbol = self.extract_field(
+
+            end = (
+                symbol_match.end()+500
+            )
+
+
+            block = text[start:end]
+
+
+
+            name = self.find_value(
                 block,
-                "symbol"
+                [
+                    "persianName",
+                    "name",
+                    "title"
+                ]
             )
 
 
-            name = (
-                self.extract_field(
-                    block,
-                    "persianName"
-                )
-                or
-                self.extract_field(
-                    block,
-                    "name"
-                )
-            )
-
-
-            price = self.extract_field(
+            price = self.find_value(
                 block,
-                "lastPrice"
+                [
+                    "lastPrice",
+                    "price",
+                    "value"
+                ]
             )
 
 
-            if symbol and price:
+
+            if price:
 
 
                 rows.append({
@@ -231,41 +252,76 @@ class FarazParser:
                 })
 
 
+
         return rows
 
 
 
-    def extract_field(
+    def find_value(
         self,
         text,
-        key
+        keys
     ):
 
 
-        patterns = [
-
-            rf'"{key}"\s*:\s*"([^"]+)"',
-
-            rf'"{key}"\s*:\s*([0-9\.]+)'
-
-        ]
+        for key in keys:
 
 
-        for pattern in patterns:
+            patterns = [
+
+                rf'"{key}"\s*:\s*"([^"]+)"',
+
+                rf'"{key}"\s*:\s*([0-9\.]+)'
+
+            ]
 
 
-            match = re.search(
-                pattern,
-                text
-            )
+            for pattern in patterns:
 
 
-            if match:
+                match = re.search(
+                    pattern,
+                    text
+                )
 
-                return match.group(1)
+
+                if match:
+
+                    return match.group(1)
+
 
 
         return None
+
+
+
+    def fix_encoding(
+        self,
+        text
+    ):
+
+
+        try:
+
+            if "Ù" in text:
+
+                return (
+                    text
+                    .encode(
+                        "latin1"
+                    )
+                    .decode(
+                        "utf-8"
+                    )
+                )
+
+
+        except:
+
+            pass
+
+
+        return text
 
 
 
@@ -283,6 +339,7 @@ class FarazParser:
                 .replace(" ","")
             )
 
+
         except:
 
             return None
@@ -296,6 +353,7 @@ class FarazParser:
 
 
         data = {}
+
 
 
         for row in rows:
@@ -381,47 +439,32 @@ class FarazParser:
 
 
 
-    def extract_gold18(
+    def extract_price(
         self,
         text
     ):
 
 
-        # اول دنبال عنوان طلای 18 عیار می‌گردیم
+        values = re.findall(
 
-        patterns = [
+            r'"(?:lastPrice|price|value)"\s*:\s*"?([0-9\.]+)"?',
 
-            r'"lastPrice"\s*:\s*"([0-9\.]+)"',
+            text
 
-            r'"price"\s*:\s*"([0-9\.]+)"',
-
-            r'"value"\s*:\s*"([0-9\.]+)"'
-
-        ]
+        )
 
 
-        for pattern in patterns:
+        for value in values:
 
 
-            matches = re.findall(
-                pattern,
-                text
+            number = self.clean(
+                value
             )
 
 
-            for value in matches:
+            if number and number > 100000:
 
-
-                number = self.clean(
-                    value
-                )
-
-
-                # حذف اعداد کوچک غیرقیمت
-
-                if number and number > 100000:
-
-                    return number
+                return number
 
 
 
