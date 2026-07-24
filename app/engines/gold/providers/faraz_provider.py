@@ -54,7 +54,28 @@ class FarazGoldProvider:
 
         try:
 
+            print(
+                "######## GOLD PROVIDER ACTIVE ########"
+            )
+
+
+            # TEMP TEST
+            # This confirms Railway is running
+            # the new provider code.
+
+            # raise Exception(
+            #     "GOLD_PROVIDER_TEST_ACTIVE"
+            # )
+
+
             raw_html = self.scraper.fetch_page()
+
+
+
+            print(
+                "RAW HTML TYPE:",
+                type(raw_html)
+            )
 
 
             if isinstance(raw_html, dict):
@@ -69,9 +90,17 @@ class FarazGoldProvider:
 
 
 
+            print(
+                "RAW HTML LENGTH:",
+                len(raw_html)
+            )
+
+
+
             parsed_data = self.parser.parse(
                 raw_html
             )
+
 
 
             print(
@@ -87,9 +116,11 @@ class FarazGoldProvider:
             )
 
 
+
             normalized = self.normalizer.normalize(
                 parsed_data
             )
+
 
 
             print(
@@ -103,6 +134,7 @@ class FarazGoldProvider:
             print(
                 "#######################################"
             )
+
 
 
             return normalized
@@ -125,6 +157,7 @@ class FarazGoldProvider:
     def _fallback(self) -> Dict:
         """
         Safe fallback.
+        Keeps ARPI alive.
         """
 
 
