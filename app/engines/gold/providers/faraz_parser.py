@@ -1,19 +1,22 @@
 import re
+import json
 from typing import Dict, Any
 
 
 class FarazParser:
-
     """
-    Faraz Parser Stable V20
+    Faraz Parser V21
 
-    Supports:
-    - Faraz market page
-    - Gold18 detail page
+    Robust parser for Faraz.io Next.js payloads
 
-    Output:
-    ARPI Gold normalized fields
+    Extracts:
+    - mesghal_price
+    - usd_free_rate
+    - coin_emami
+    - coin_bahar
+    - gold18_price
     """
+
 
     def parse(
         self,
@@ -25,8 +28,14 @@ class FarazParser:
 
         try:
 
-            print("######## FARAZ PARSER V20 DEBUG ########")
-            print("SOURCE:", source)
+            print(
+                "######## FARAZ PARSER V21 DEBUG ########"
+            )
+
+            print(
+                "SOURCE:",
+                source
+            )
 
 
             payloads = re.findall(
@@ -42,43 +51,58 @@ class FarazParser:
             )
 
 
-            for payload in payloads:
+            for index, payload in enumerate(payloads):
 
 
-                if source == "gold18":
+                if (
+                    "lastPrice" in payload
+                    or
+                    "price" in payload
+                    or
+                    "value" in payload
+                ):
 
-                    price = self.extract_price(
-                        payload
-                    )
-
-                    if price:
-
-                        result[
-                            "gold18_price"
-                        ] = price
-
-
-                else:
-
-
-                    rows = self.extract_rows(
-                        payload
+                    print(
+                        "ACTIVE PAYLOAD:",
+                        index
                     )
 
 
-                    if rows:
+                    if source == "gold18":
+
+                        price = self.extract_price(
+                            payload
+                        )
+
+                        if price:
+
+                            result[
+                                "gold18_price"
+                            ] = price
+
+
+                    else:
+
+
+                        rows = self.extract_objects(
+                            payload
+                        )
+
 
                         print(
-                            "ROWS FOUND:",
+                            "OBJECT COUNT:",
                             len(rows)
                         )
 
 
-                        mapped = self.map_rows(
+                        mapped = self.map_objects(
                             rows
                         )
 
-                        result.update(mapped)
+
+                        result.update(
+                            mapped
+                        )
 
 
 
@@ -86,7 +110,6 @@ class FarazParser:
                 "FINAL RESULT:",
                 result
             )
-
 
             print(
                 "####################################"
@@ -108,21 +131,16 @@ class FarazParser:
 
 
 
-    def extract_rows(
+
+    def extract_objects(
         self,
         text
     ):
 
-        rows=[]
+        objects = []
 
 
-        pattern = (
-
-        r'"symbol":"(.*?)".*?'
-        r'"persianName":"(.*?)".*?'
-        r'"lastPrice":("?)([\d,\.]+)\3'
-
-        )
+        pattern = r'\{(.*?)\}'
 
 
         matches = re.findall(
@@ -132,48 +150,258 @@ class FarazParser:
         )
 
 
-        for m in matches:
+        for item in matches:
 
 
-            rows.append({
+            if (
+                "lastPrice" not in item
+                and
+                "price" not in item
+            ):
+                continue
 
-                "symbol":m[0],
 
-                "name":self.decode(
-                    m[1]
-                ),
 
-                "price":self.clean(
-                    m[3]
+            symbol = self.find_value(
+                item,
+                "symbol"
+            )
+
+
+            name = (
+                self.find_value(
+                    item,
+                    "persianName"
                 )
+                or
+                self.find_value(
+                    item,
+                    "name"
+                )
+            )
 
-            })
+
+            price = (
+                self.find_value(
+                    item,
+                    "lastPrice"
+                )
+                or
+                self.find_value(
+                    item,
+                    "price"
+                )
+                or
+                self.find_value(
+                    item,
+                    "value"
+                )
+            )
 
 
-        return rows
+            if price:
+
+
+                objects.append({
+
+                    "symbol":
+                        symbol or "",
+
+                    "name":
+                        self.decode(
+                            name or ""
+                        ),
+
+                    "price":
+                        self.clean(
+                            price
+                        )
+
+                })
+
+
+        return objects
 
 
 
-    def decode(
+
+
+    def find_value(
+        self,
+        text,
+        key
+    ):
+
+        pattern = (
+            r'"'
+            + key +
+            r'"\s*:\s*"?(.*?)"?[,}]'
+        )
+
+
+        match = re.search(
+            pattern,
+            text
+        )
+
+
+        if match:
+
+            return match.group(1)
+
+
+        return None
+
+
+
+
+
+    def map_objects(
+        self,
+        rows
+    ):
+
+        data = {}
+
+
+        for row in rows:
+
+
+            symbol = (
+                row["symbol"]
+                .lower()
+            )
+
+
+            name = (
+                row["name"]
+                .lower()
+            )
+
+
+            price = row["price"]
+
+
+            print(
+                "ROW:",
+                symbol,
+                name,
+                price
+            )
+
+
+
+            if price is None:
+                continue
+
+
+
+            # مظنه آبشده
+
+            if (
+
+                "abshode" in symbol
+                or
+                "harat" in symbol
+                or
+                "مظنه" in name
+                or
+                "آبشده" in name
+
+            ):
+
+                if price > 1000000:
+
+                    data[
+                        "mesghal_price"
+                    ] = price
+
+
+
+            # دلار
+
+            if (
+
+                "usd" in symbol
+                or
+                "dollar" in symbol
+
+            ):
+
+                data[
+                    "usd_free_rate"
+                ] = price
+
+
+
+            # امامی
+
+            if "emami" in symbol:
+
+                data[
+                    "coin_emami"
+                ] = price
+
+
+
+            # بهار
+
+            if "bahar" in symbol:
+
+                data[
+                    "coin_bahar"
+                ] = price
+
+
+
+        return data
+
+
+
+
+
+    def extract_price(
         self,
         text
     ):
 
-        try:
 
-            return (
+        patterns = [
+
+            r'"lastPrice"\s*:\s*"?(.*?)"?[,}]',
+
+            r'"price"\s*:\s*"?(.*?)"?[,}]',
+
+            r'"value"\s*:\s*"?(.*?)"?[,}]'
+
+        ]
+
+
+        for pattern in patterns:
+
+
+            match = re.search(
+                pattern,
                 text
-                .encode(
-                    "latin1"
-                )
-                .decode(
-                    "utf-8"
-                )
             )
 
-        except:
 
-            return text
+            if match:
+
+                value = self.clean(
+                    match.group(1)
+                )
+
+
+                if value:
+
+                    return value
+
+
+
+        return None
+
+
 
 
 
@@ -185,7 +413,8 @@ class FarazParser:
         try:
 
             return float(
-                value.replace(
+                str(value)
+                .replace(
                     ",",
                     ""
                 )
@@ -197,117 +426,30 @@ class FarazParser:
 
 
 
-    def map_rows(
-        self,
-        rows
-    ):
-
-        data={}
 
 
-        for row in rows:
-
-
-            symbol=row["symbol"].lower()
-
-            name=row["name"]
-
-            price=row["price"]
-
-
-            print(
-                "MAP:",
-                symbol,
-                name,
-                price
-            )
-
-
-            # مظنه آبشده
-
-            if (
-                "abshode" in symbol
-                or
-                "مظنه" in name
-                or
-                "آبشده" in name
-            ):
-
-                if price and price > 1000000:
-
-                    data[
-                        "mesghal_price"
-                    ]=price
-
-
-
-            # دلار
-
-            if (
-                "usd" in symbol
-                or
-                "dollar" in symbol
-            ):
-
-                data[
-                    "usd_free_rate"
-                ]=price
-
-
-
-            # سکه
-
-            if "emami" in symbol:
-
-                data[
-                    "coin_emami"
-                ]=price
-
-
-
-            if "bahar" in symbol:
-
-                data[
-                    "coin_bahar"
-                ]=price
-
-
-
-        return data
-
-
-
-    def extract_price(
+    def decode(
         self,
         text
     ):
 
+        try:
 
-        patterns=[
+            if "Ù" in text:
 
-            r'"lastPrice":("?)([\d,\.]+)\1',
-
-            r'"price":("?)([\d,\.]+)\1',
-
-            r'"value":("?)([\d,\.]+)\1'
-
-        ]
-
-
-        for p in patterns:
-
-
-            m=re.search(
-                p,
-                text
-            )
-
-
-            if m:
-
-                return self.clean(
-                    m.group(2)
+                return (
+                    text
+                    .encode(
+                        "latin1"
+                    )
+                    .decode(
+                        "utf-8"
+                    )
                 )
 
+        except:
 
-        return None
+            pass
+
+
+        return text
