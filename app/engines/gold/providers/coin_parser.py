@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 class CoinParser:
     """
-    Faraz Coin Parser V39
+    Faraz Coin Parser V40
 
     Extract:
     - coin_emami
@@ -16,14 +16,13 @@ class CoinParser:
     faraz.io/markets/gold-currency?page=2
     """
 
-
     def parse(
         self,
         html: str,
         source: str = "coin"
     ) -> Dict[str, Any]:
 
-        print("######## COIN PARSER V39 DEBUG ########")
+        print("######## COIN PARSER V40 DEBUG ########")
         print("SOURCE:", source)
 
         result = {}
@@ -35,7 +34,6 @@ class CoinParser:
                 html,
                 re.DOTALL
             )
-
 
             print(
                 "PAYLOAD COUNT:",
@@ -68,11 +66,6 @@ class CoinParser:
                         rows,
                         result
                     )
-
-
-            self.calculate_coin_bubble(
-                result
-            )
 
 
             print(
@@ -140,7 +133,7 @@ class CoinParser:
 
 
                     elif text[i] == ']':
-                        
+
                         depth -= 1
 
 
@@ -209,6 +202,11 @@ class CoinParser:
             )
 
 
+            if price is None:
+
+                continue
+
+
 
             # -------------------------
             # Coin Emami
@@ -237,7 +235,7 @@ class CoinParser:
 
 
             # -------------------------
-            # Coin Bahar / نقدی
+            # Coin Bahar
             # -------------------------
 
             elif (
@@ -262,7 +260,35 @@ class CoinParser:
 
 
 
-            # fallback Persian
+            # -------------------------
+            # Coin Bubble
+            # -------------------------
+
+            elif (
+
+                "hobabsekkefardayi" in symbol
+
+                or
+
+                "حباب" in name
+
+            ):
+
+                result[
+                    "coin_bubble"
+                ] = price
+
+
+                print(
+                    "COIN BUBBLE FOUND:",
+                    price
+                )
+
+
+
+            # -------------------------
+            # Persian fallback
+            # -------------------------
 
             elif (
 
@@ -279,25 +305,6 @@ class CoinParser:
                 result[
                     "coin_bahar"
                 ] = price
-
-
-
-    def calculate_coin_bubble(
-        self,
-        result: Dict
-    ):
-
-        coin = result.get(
-            "coin_emami"
-        )
-
-
-        if coin:
-
-            # اگر mesghal بعداً از Provider اضافه شد
-            # این قسمت فعال می‌شود
-
-            pass
 
 
 
