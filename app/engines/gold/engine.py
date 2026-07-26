@@ -18,7 +18,6 @@ class GoldEngine:
     - Confidence estimation
     """
 
-
     VERSION = "3.1.0"
 
 
@@ -36,26 +35,43 @@ class GoldEngine:
         Analyze normalized gold data.
         """
 
+        # Convert Pydantic Model to Dictionary
+        # Required for GoldData input from FastAPI
+
+        if hasattr(data, "model_dump"):
+
+            data = data.model_dump()
+
+
 
         total_inputs = [
 
             "xau_usd",
+
             "dxy",
+
             "us10y_yield",
 
             "usd_free_rate",
+
             "usd_change",
 
             "gold18_price",
+
             "mesghal_price",
 
             "coin_emami",
+
             "coin_bahar",
+
             "coin_bubble",
 
             "gold_daily_change",
+
             "volume",
+
         ]
+
 
 
         available_inputs = [
@@ -67,6 +83,7 @@ class GoldEngine:
         ]
 
 
+
         missing_inputs = [
 
             key
@@ -74,6 +91,7 @@ class GoldEngine:
             if data.get(key) is None
 
         ]
+
 
 
         available_count = len(
@@ -84,6 +102,7 @@ class GoldEngine:
         total_count = len(
             total_inputs
         )
+
 
 
         # -------------------------
@@ -115,6 +134,7 @@ class GoldEngine:
         )
 
 
+
         gold_score = scoring_result.get(
             "gold_score",
             50
@@ -141,24 +161,28 @@ class GoldEngine:
         if gold_score >= 80:
 
             signal = "STRONG BUY"
+
             trend = "BULLISH"
 
 
         elif gold_score >= 65:
 
             signal = "BUY"
+
             trend = "BULLISH"
 
 
         elif gold_score <= 35:
 
             signal = "SELL"
+
             trend = "BEARISH"
 
 
         else:
 
             signal = "HOLD"
+
             trend = "NEUTRAL"
 
 
@@ -171,8 +195,11 @@ class GoldEngine:
             (
                 available_count /
                 total_count
-            ) * 100
+            )
+            *
+            100
         )
+
 
 
         confidence = min(
@@ -182,6 +209,7 @@ class GoldEngine:
                 confidence
             )
         )
+
 
 
         if data_quality == "LOW":
@@ -204,57 +232,82 @@ class GoldEngine:
         return {
 
             "engine":
+
                 "Gold Intelligence Engine",
 
 
+
             "version":
+
                 self.VERSION,
 
 
+
             "gold_score":
+
                 round(
                     gold_score,
                     2
                 ),
 
 
+
             "trend":
+
                 trend,
 
 
+
             "signal":
+
                 signal,
 
 
+
             "confidence":
+
                 confidence,
 
 
+
             "drivers":
+
                 drivers,
 
 
+
             "risks":
+
                 risks,
 
 
+
             "data_quality":
+
                 data_quality,
 
 
+
             "available_inputs":
+
                 available_count,
 
 
+
             "missing_inputs":
+
                 missing_inputs,
 
 
+
             "available_fields":
+
                 available_inputs,
 
 
+
             "timestamp":
+
                 datetime.utcnow()
 
         }
