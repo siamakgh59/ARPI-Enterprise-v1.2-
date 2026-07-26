@@ -19,6 +19,7 @@ class FarazParser:
     - coin_bubble
     """
 
+
     def parse(
         self,
         html: str,
@@ -73,8 +74,6 @@ class FarazParser:
                         )
 
 
-                    # NEW V32
-                    # Search coins outside rows
                     self.extract_coins_from_payload(
                         decoded,
                         result
@@ -128,14 +127,11 @@ class FarazParser:
 
             key = '"rows":'
 
-
             start = text.find(
                 key
             )
 
-
             if start == -1:
-
                 return []
 
 
@@ -144,9 +140,7 @@ class FarazParser:
                 start
             )
 
-
             if start == -1:
-
                 return []
 
 
@@ -159,14 +153,11 @@ class FarazParser:
                 len(text)
             ):
 
-
                 if text[i] == '[':
-
                     depth += 1
 
 
                 elif text[i] == ']':
-
                     depth -= 1
 
 
@@ -176,9 +167,7 @@ class FarazParser:
                         break
 
 
-
             if not end:
-
                 return []
 
 
@@ -195,7 +184,10 @@ class FarazParser:
             )
 
             return []
-                def parse_rows(
+
+
+
+    def parse_rows(
         self,
         rows,
         result
@@ -240,10 +232,6 @@ class FarazParser:
             )
 
 
-            # -------------------------
-            # Mesghal
-            # -------------------------
-
             if (
                 "abshode" in symbol
                 or
@@ -257,10 +245,6 @@ class FarazParser:
                 ] = price
 
 
-
-            # -------------------------
-            # USD
-            # -------------------------
 
             if (
                 "harat" in symbol
@@ -280,14 +264,7 @@ class FarazParser:
                     result[
                         "usd_change"
                     ] = change
-
-
-
-            # -------------------------
-            # Coin Emami
-            # -------------------------
-
-            if (
+                            if (
                 "emami" in symbol
                 or
                 "imam" in symbol
@@ -308,10 +285,6 @@ class FarazParser:
                 )
 
 
-
-            # -------------------------
-            # Coin Bahar
-            # -------------------------
 
             if (
                 "bahar" in symbol
@@ -343,10 +316,6 @@ class FarazParser:
 
 
 
-    # =====================================================
-    # V32 NEW:
-    # Extract coins from full payload
-    # =====================================================
 
     def extract_coins_from_payload(
         self,
@@ -354,15 +323,11 @@ class FarazParser:
         result: Dict
     ):
 
-
         try:
-
-            # Search Imam Coin
 
             if result.get(
                 "coin_emami"
             ) is None:
-
 
                 patterns = [
 
@@ -402,12 +367,9 @@ class FarazParser:
 
 
 
-            # Search Bahar Coin
-
             if result.get(
                 "coin_bahar"
             ) is None:
-
 
                 patterns = [
 
@@ -446,35 +408,19 @@ class FarazParser:
                         break
 
 
-
-            # Alternative generic coin scan
-
-            if (
-                result.get("coin_emami") is None
-                or
-                result.get("coin_bahar") is None
-            ):
-
-
-                if "سکه" in text:
-
-                    print(
-                        "COIN KEY FOUND IN PAYLOAD"
-                    )
-
-
-
         except Exception as e:
 
             print(
                 "COIN EXTRACTION ERROR:",
                 e
             )
-                def calculate_coin_bubble(
+
+
+
+    def calculate_coin_bubble(
         self,
         result: Dict
     ):
-
 
         coin = result.get(
             "coin_emami"
@@ -534,7 +480,6 @@ class FarazParser:
         text,
         result
     ):
-
 
         prices = re.findall(
             r'"price":(\d+)',
