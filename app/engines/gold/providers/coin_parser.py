@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 class CoinParser:
     """
-    Faraz Coin Parser V34
+    Faraz Coin Parser V35
 
     Extract:
     - coin_emami
@@ -13,12 +13,12 @@ class CoinParser:
     - coin_bubble
 
     Supports:
-    - Next.js payload
-    - rows array
+    - Next.js self.__next_f payload
+    - rows
     - Persian names
     - English symbols
+    - payload debug
     """
-
 
     def parse(
         self,
@@ -26,7 +26,7 @@ class CoinParser:
         source: str = "market"
     ) -> Dict[str, Any]:
 
-        print("######## COIN PARSER V34 DEBUG ########")
+        print("######## COIN PARSER V35 DEBUG ########")
         print("SOURCE:", source)
 
         result = {}
@@ -72,7 +72,7 @@ class CoinParser:
                     )
 
 
-                self.extract_coins_from_text(
+                self.extract_from_payload(
                     decoded,
                     result
                 )
@@ -115,14 +115,16 @@ class CoinParser:
 
             key = '"rows":'
 
-            start = text.find(key)
+            start = text.find(
+                key
+            )
 
             if start == -1:
                 return []
 
 
             start = text.find(
-                '[',
+                "[",
                 start
             )
 
@@ -132,18 +134,19 @@ class CoinParser:
 
             depth = 0
 
+
             for i in range(
                 start,
                 len(text)
             ):
 
-                if text[i] == '[':
+                if text[i] == "[":
                     depth += 1
 
 
-                elif text[i] == ']':
-                    depth -= 1
+                elif text[i] == "]":
 
+                    depth -= 1
 
                     if depth == 0:
 
@@ -169,7 +172,6 @@ class CoinParser:
         rows,
         result: Dict
     ):
-
 
         for row in rows:
 
@@ -209,15 +211,16 @@ class CoinParser:
 
 
 
-            # سکه امامی
-
             if (
                 "emami" in symbol
-                or "imam" in symbol
-                or "sekkeemami" in symbol
-                or "sekke-emami" in symbol
-                or "امامی" in name
-                or "سکه" in name and "امام" in name
+                or
+                "imam" in symbol
+                or
+                "sekke" in symbol
+                or
+                "امامی" in name
+                or
+                ("سکه" in name and "امام" in name)
             ):
 
                 result[
@@ -231,14 +234,14 @@ class CoinParser:
 
 
 
-            # سکه بهار آزادی
-
             if (
                 "bahar" in symbol
-                or "azadi" in symbol
-                or "sekebahar" in symbol
-                or "بهار" in name
-                or "آزادی" in name
+                or
+                "azadi" in symbol
+                or
+                "بهار" in name
+                or
+                "آزادی" in name
             ):
 
                 result[
@@ -252,67 +255,126 @@ class CoinParser:
 
 
 
-    def extract_coins_from_text(
+    def extract_from_payload(
         self,
         text: str,
         result: Dict
     ):
 
+        try:
 
-        patterns = {
+            if "سکه" in text:
 
+                index = text.find(
+                    "سکه"
+                )
 
-            "coin_emami":[
+                print(
+                    "######## COIN CONTEXT ########"
+                )
 
-                r'امامی.{0,500}?(?:lastPrice|price).{0,20}?([0-9,.]+)',
-                r'emami.{0,500}?(?:lastPrice|price).{0,20}?([0-9,.]+)',
-                r'imam.{0,500}?(?:lastPrice|price).{0,20}?([0-9,.]+)'
+                print(
+                    text[index:index+800]
+                )
 
-            ],
-
-
-            "coin_bahar":[
-
-                r'بهار.{0,500}?(?:lastPrice|price).{0,20}?([0-9,.]+)',
-                r'bahar.{0,500}?(?:lastPrice|price).{0,20}?([0-9,.]+)',
-                r'azadi.{0,500}?(?:lastPrice|price).{0,20}?([0-9,.]+)'
-
-            ]
-
-        }
-
-
-
-        for key, items in patterns.items():
-
-
-            if result.get(key):
-                continue
-
-
-            for pattern in items:
-
-
-                match = re.search(
-                    pattern,
-                    text,
-                    re.IGNORECASE
+                print(
+                    "##############################"
                 )
 
 
-                if match:
 
-                    result[key] = self.clean(
-                        match.group(1)
+            if result.get(
+                "coin_emami"
+            ) is None:
+
+
+                patterns = [
+
+                    r'سکه.{0,500}?امامی.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)',
+
+                    r'امامی.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)',
+
+                    r'emami.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)',
+
+                    r'imam.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)'
+
+                ]
+
+
+                for pattern in patterns:
+
+                    match = re.search(
+                        pattern,
+                        text,
+                        re.IGNORECASE
                     )
 
-                    print(
-                        key,
-                        "FOUND PAYLOAD:",
-                        result[key]
+                    if match:
+
+                        result[
+                            "coin_emami"
+                        ] = self.clean(
+                            match.group(1)
+                        )
+
+                        print(
+                            "EMAMI PAYLOAD FOUND:",
+                            result["coin_emami"]
+                        )
+
+                        break
+
+
+
+            if result.get(
+                "coin_bahar"
+            ) is None:
+
+
+                patterns = [
+
+                    r'سکه.{0,500}?بهار.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)',
+
+                    r'بهار.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)',
+
+                    r'bahar.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)',
+
+                    r'azadi.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)'
+
+                ]
+
+
+                for pattern in patterns:
+
+                    match = re.search(
+                        pattern,
+                        text,
+                        re.IGNORECASE
                     )
 
-                    break
+                    if match:
+
+                        result[
+                            "coin_bahar"
+                        ] = self.clean(
+                            match.group(1)
+                        )
+
+                        print(
+                            "BAHAR PAYLOAD FOUND:",
+                            result["coin_bahar"]
+                        )
+
+                        break
+
+
+
+        except Exception as e:
+
+            print(
+                "PAYLOAD ERROR:",
+                e
+            )
 
 
 
@@ -321,10 +383,10 @@ class CoinParser:
         result: Dict
     ):
 
-
         coin = result.get(
             "coin_emami"
         )
+
 
         mesghal = result.get(
             "mesghal_price"
@@ -335,21 +397,27 @@ class CoinParser:
 
             try:
 
-                theoretical = mesghal * 0.235
-
-
-                bubble = (
-                    (coin - theoretical)
-                    /
-                    theoretical
-                ) * 100
+                theoretical = (
+                    mesghal *
+                    0.235
+                )
 
 
                 result[
                     "coin_bubble"
                 ] = round(
-                    bubble,
+                    (
+                        (coin - theoretical)
+                        /
+                        theoretical
+                    ) * 100,
                     2
+                )
+
+
+                print(
+                    "COIN BUBBLE:",
+                    result["coin_bubble"]
                 )
 
 
