@@ -1,43 +1,467 @@
 import re
+import json
+from typing import Dict, Any
 
 
-class CoinParser:
+class FarazParser:
     """
-    ARPI Coin Parser v1.0
-    """
+    Faraz Parser V30
 
+    Extract:
+    - mesghal_price
+    - usd_free_rate
+    - gold18_price
+    - volume
+    - gold_daily_change
+    - coin_emami
+    - coin_bahar
+    - coin_bubble
+    """
 
     def parse(
         self,
-        html: str
-    ):
+        html: str,
+        source: str = "market"
+    ) -> Dict[str, Any]:
+
+        print("######## FARAZ PARSER V30 DEBUG ########")
+        print("SOURCE:", source)
 
         result = {}
 
-
         try:
 
-            prices = re.findall(
-                r'"price":(\d+)',
-                html
+            payloads = re.findall(
+                r'self\.__next_f\.push\((.*?)\)</script>',
+                html,
+                re.DOTALL
+            )
+
+            print(
+                "PAYLOAD COUNT:",
+                len(payloads)
             )
 
 
-            if prices:
+            for payload in payloads:
 
-                result[
-                    "coin_price"
-                ] = float(
-                    prices[-1]
+                decoded = (
+                    payload
+                    .replace('\\"', '"')
+                    .replace('\\\\', '\\')
                 )
+
+
+                if source == "market":
+
+                    rows = self.extract_rows_array(
+                        decoded
+                    )
+
+
+                    if rows:
+
+                        print(
+                            "ROWS FOUND:",
+                            len(rows)
+                        )
+
+                        self.parse_rows(
+                            rows,
+                            result
+                        )
+
+
+                elif source == "gold18":
+
+                    self.extract_gold18(
+                        decoded,
+                        result
+                    )
+
+
+            if source == "market":
+
+                self.calculate_coin_bubble(
+                    result
+                )
+
+
+            print(
+                "FINAL RESULT:",
+                result
+            )
 
 
         except Exception as e:
 
             print(
-                "COIN PARSER ERROR:",
+                "PARSER ERROR:",
                 e
             )
 
 
+        print(
+            "################################"
+        )
+
+
         return result
+
+
+
+    def extract_rows_array(
+        self,
+        text: str
+    ):
+
+        try:
+
+            matches = []
+
+            start_pos = 0
+
+            while True:
+
+                index = text.find(
+                    '"rows":',
+                    start_pos
+                )
+
+                if index == -1:
+                    break
+
+
+                start = text.find(
+                    '[',
+                    index
+                )
+
+
+                if start == -1:
+                    break
+
+
+                depth = 0
+                end = None
+
+
+                for i in range(
+                    start,
+                    len(text)
+                ):
+
+                    if text[i] == '[':
+                        depth += 1
+
+                    elif text[i] == ']':
+                        depth -= 1
+
+                        if depth == 0:
+
+                            end = i + 1
+                            break
+
+
+                if end:
+
+                    try:
+
+                        rows = json.loads(
+                            text[start:end]
+                        )
+
+                        matches.extend(
+                            rows
+                        )
+
+                    except:
+
+                        pass
+
+
+                start_pos = start + 1
+
+
+            return matches
+
+
+        except Exception as e:
+
+            print(
+                "ROWS ERROR:",
+                e
+            )
+
+            return []
+
+
+
+    def parse_rows(
+        self,
+        rows,
+        result
+    ):
+
+
+        for row in rows:
+
+
+            symbol = str(
+                row.get(
+                    "symbol",
+                    ""
+                )
+            ).lower()
+
+
+            name = str(
+                row.get(
+                    "persianName",
+                    ""
+                )
+            ).lower()
+
+
+
+            price = self.clean(
+                row.get(
+                    "lastPrice"
+                )
+            )
+
+
+            change = row.get(
+                "changePercent"
+            )
+
+
+            print(
+                "ROW:",
+                symbol,
+                price
+            )
+
+
+            # Mesghal
+
+            if (
+                "abshode" in symbol
+                or
+                "آبشده" in name
+                or
+                "مظنه" in name
+            ):
+
+                result[
+                    "mesghal_price"
+                ] = price
+
+
+
+            # USD
+
+            if (
+                "harat" in symbol
+                or
+                "usd" in symbol
+                or
+                "dollar" in symbol
+            ):
+
+                result[
+                    "usd_free_rate"
+                ] = price
+
+
+
+            # Coin Emami
+
+            if (
+                "emami" in symbol
+                or
+                "imam" in symbol
+                or
+                "sekkeemami" in symbol
+                or
+                "coinemami" in symbol
+                or
+                "امامی" in name
+            ):
+
+                result[
+                    "coin_emami"
+                ] = price
+
+
+
+            # Coin Bahar
+
+            if (
+                "bahar" in symbol
+                or
+                "azadi" in symbol
+                or
+                "sekkebahar" in symbol
+                or
+                "بهار" in name
+            ):
+
+                result[
+                    "coin_bahar"
+                ] = price
+
+
+
+            if change:
+
+                try:
+
+                    result[
+                        "gold_daily_change"
+                    ] = float(
+                        str(change)
+                        .replace("%","")
+                        .replace("+","")
+                    )
+
+                except:
+
+                    pass
+
+
+
+    def calculate_coin_bubble(
+        self,
+        result: Dict
+    ):
+
+
+        coin = result.get(
+            "coin_emami"
+        )
+
+
+        mesghal = result.get(
+            "mesghal_price"
+        )
+
+
+        if coin and mesghal:
+
+            try:
+
+                theoretical = (
+                    mesghal * 0.235
+                )
+
+
+                bubble = (
+                    (coin - theoretical)
+                    /
+                    theoretical
+                ) * 100
+
+
+                result[
+                    "coin_bubble"
+                ] = round(
+                    bubble,
+                    2
+                )
+
+
+                print(
+                    "COIN BUBBLE:",
+                    result["coin_bubble"]
+                )
+
+
+            except Exception as e:
+
+                print(
+                    "BUBBLE ERROR:",
+                    e
+                )
+
+
+
+    def extract_gold18(
+        self,
+        text,
+        result
+    ):
+
+
+        prices = re.findall(
+            r'"price":(\d+)',
+            text
+        )
+
+
+        if prices:
+
+            result[
+                "gold18_price"
+            ] = float(
+                prices[-1]
+            )
+
+
+
+        volumes = re.findall(
+            r'"volume":(\d+)',
+            text
+        )
+
+
+        if volumes:
+
+            result[
+                "volume"
+            ] = float(
+                volumes[-1]
+            )
+
+
+
+        changes = re.findall(
+            r'"changePercent":(-?\d+\.?\d*)',
+            text
+        )
+
+
+        if changes:
+
+            result[
+                "gold_daily_change"
+            ] = float(
+                changes[-1]
+            )
+
+
+
+    def clean(
+        self,
+        value
+    ):
+
+        try:
+
+            if value is None:
+
+                return None
+
+
+            return float(
+                str(value)
+                .replace(
+                    ",",
+                    ""
+                )
+            )
+
+
+        except:
+
+            return None
