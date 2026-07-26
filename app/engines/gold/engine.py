@@ -8,20 +8,24 @@ class GoldEngine:
     """
     ARPI Gold Intelligence Engine
 
-    Responsible for:
-    - Gold market intelligence
-    - Dynamic score calculation
+    Sprint 3.1
+    Dynamic Gold Scoring Integration
+
+    Responsibilities:
+    - Data quality awareness
+    - Gold scoring orchestration
     - Signal generation
     - Confidence estimation
-    - Data quality awareness
     """
 
-    VERSION = "2.1.0"
+
+    VERSION = "3.1.0"
 
 
     def __init__(self):
 
         self.scorer = GoldScoringEngine()
+
 
 
     def analyze(
@@ -34,32 +38,41 @@ class GoldEngine:
 
 
         total_inputs = [
+
             "xau_usd",
             "dxy",
             "us10y_yield",
+
             "usd_free_rate",
             "usd_change",
+
             "gold18_price",
             "mesghal_price",
+
             "coin_emami",
             "coin_bahar",
             "coin_bubble",
+
             "gold_daily_change",
             "volume",
         ]
 
 
         available_inputs = [
+
             key
             for key in total_inputs
             if data.get(key) is not None
+
         ]
 
 
         missing_inputs = [
+
             key
             for key in total_inputs
             if data.get(key) is None
+
         ]
 
 
@@ -73,9 +86,9 @@ class GoldEngine:
         )
 
 
-        # -----------------------------
+        # -------------------------
         # Data Quality
-        # -----------------------------
+        # -------------------------
 
         if available_count == total_count:
 
@@ -93,37 +106,37 @@ class GoldEngine:
 
 
 
-        # -----------------------------
-        # Dynamic Gold Scoring Engine
-        # -----------------------------
+        # -------------------------
+        # Dynamic Gold Scoring
+        # -------------------------
 
-        score_result = self.scorer.analyze(
+        scoring_result = self.scorer.analyze(
             data
         )
 
 
-        gold_score = score_result.get(
+        gold_score = scoring_result.get(
             "gold_score",
             50
         )
 
 
-        drivers = score_result.get(
+        drivers = scoring_result.get(
             "drivers",
             []
         )
 
 
-        risks = score_result.get(
+        risks = scoring_result.get(
             "risks",
             []
         )
 
 
 
-        # -----------------------------
+        # -------------------------
         # Signal Logic
-        # -----------------------------
+        # -------------------------
 
         if gold_score >= 80:
 
@@ -150,9 +163,9 @@ class GoldEngine:
 
 
 
-        # -----------------------------
+        # -------------------------
         # Confidence
-        # -----------------------------
+        # -------------------------
 
         confidence = int(
             (
