@@ -9,10 +9,9 @@ from .coin_parser import CoinParser
 from .normalizer import GoldNormalizer
 
 
-
 class FarazGoldProvider:
     """
-    Faraz.io Gold Market Provider V7
+    Faraz.io Gold Market Provider V8
 
     Sources:
 
@@ -24,7 +23,6 @@ class FarazGoldProvider:
     2- geramTalaHejdah
        - 18K gold price
     """
-
 
 
     def __init__(self):
@@ -40,11 +38,9 @@ class FarazGoldProvider:
         self.normalizer = GoldNormalizer()
 
 
-
         self.gold18_url = (
             "https://faraz.io/markets/gold-currency/geramTalaHejdah"
         )
-
 
 
     def fetch_gold18_page(self):
@@ -97,18 +93,14 @@ class FarazGoldProvider:
             return html
 
 
-
         except Exception as e:
-
 
             print(
                 "Gold18 Fetch Error:",
                 e
             )
 
-
             return None
-
 
 
 
@@ -117,22 +109,17 @@ class FarazGoldProvider:
 
         try:
 
-
             print(
                 "######## GOLD PROVIDER ACTIVE ########"
             )
 
 
-
-            # -------------------------
+            # =========================
             # SOURCE 1
-            # Main Market
-            # -------------------------
+            # MARKET
+            # =========================
 
-
-            market_html = (
-                self.scraper.fetch_page()
-            )
+            market_html = self.scraper.fetch_page()
 
 
             if isinstance(
@@ -144,11 +131,20 @@ class FarazGoldProvider:
 
 
 
+            # Main parser
+
             market_data = self.parser.parse(
                 market_html,
                 source="market"
             )
 
+
+            # Coin parser
+
+            coin_data = self.coin_parser.parse(
+                market_html,
+                source="market"
+            )
 
 
             print(
@@ -157,31 +153,34 @@ class FarazGoldProvider:
             )
 
 
-
-            # -------------------------
-            # SOURCE 2
-            # Gold 18
-            # -------------------------
-
-
-            gold18_html = (
-                self.fetch_gold18_page()
+            print(
+                "COIN DATA:",
+                coin_data
             )
 
+
+            market_data.update(
+                coin_data
+            )
+
+
+            # =========================
+            # SOURCE 2
+            # GOLD18
+            # =========================
+
+            gold18_html = self.fetch_gold18_page()
 
 
             gold18_data = {}
 
 
-
             if gold18_html:
-
 
                 gold18_data = self.parser.parse(
                     gold18_html,
                     source="gold18"
                 )
-
 
 
             print(
@@ -191,7 +190,9 @@ class FarazGoldProvider:
 
 
 
-            # Merge
+            # =========================
+            # MERGE
+            # =========================
 
             parsed_data = {}
 
@@ -204,7 +205,6 @@ class FarazGoldProvider:
             parsed_data.update(
                 gold18_data
             )
-
 
 
             print(
@@ -221,12 +221,9 @@ class FarazGoldProvider:
 
 
 
-            normalized = (
-                self.normalizer.normalize(
-                    parsed_data
-                )
+            normalized = self.normalizer.normalize(
+                parsed_data
             )
-
 
 
             print(
@@ -235,14 +232,11 @@ class FarazGoldProvider:
             )
 
 
-
             return normalized
 
 
 
-
         except Exception as e:
-
 
             print(
                 "Faraz Provider Error:",
@@ -251,7 +245,6 @@ class FarazGoldProvider:
 
 
             return self._fallback()
-
 
 
 
