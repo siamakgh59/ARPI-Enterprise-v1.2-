@@ -1,24 +1,27 @@
 from datetime import datetime
 from typing import Dict, Any
 
+from .scoring_engine import GoldScoringEngine
 
-class GoldIntelligenceEngine:
+
+class GoldEngine:
     """
     ARPI Gold Intelligence Engine
 
     Responsible for:
     - Gold market intelligence
-    - Score calculation
+    - Dynamic score calculation
     - Signal generation
     - Confidence estimation
     - Data quality awareness
     """
 
-    VERSION = "2.0.0"
+    VERSION = "2.1.0"
 
 
     def __init__(self):
-        pass
+
+        self.scorer = GoldScoringEngine()
 
 
     def analyze(
@@ -28,6 +31,7 @@ class GoldIntelligenceEngine:
         """
         Analyze normalized gold data.
         """
+
 
         total_inputs = [
             "xau_usd",
@@ -63,6 +67,7 @@ class GoldIntelligenceEngine:
             available_inputs
         )
 
+
         total_count = len(
             total_inputs
         )
@@ -76,9 +81,11 @@ class GoldIntelligenceEngine:
 
             data_quality = "GOOD"
 
+
         elif available_count >= 5:
 
             data_quality = "PARTIAL"
+
 
         else:
 
@@ -87,77 +94,29 @@ class GoldIntelligenceEngine:
 
 
         # -----------------------------
-        # Temporary Core Scoring
-        # until GoldScoringEngine
-        # is integrated
+        # Dynamic Gold Scoring Engine
         # -----------------------------
 
-        gold_score = 50
-
-        drivers = []
-
-        risks = []
-
-
-        gold18 = data.get(
-            "gold18_price"
-        )
-
-        mesghal = data.get(
-            "mesghal_price"
+        score_result = self.scorer.analyze(
+            data
         )
 
 
-        if gold18 is not None:
-
-            drivers.append(
-                "gold18_price_available"
-            )
-
-            gold_score += 5
-
-
-        if mesghal is not None:
-
-            drivers.append(
-                "mesghal_price_available"
-            )
-
-            gold_score += 5
-
-
-        daily_change = data.get(
-            "gold_daily_change"
+        gold_score = score_result.get(
+            "gold_score",
+            50
         )
 
 
-        if daily_change is not None:
-
-            if daily_change > 0:
-
-                drivers.append(
-                    "positive_daily_gold_change"
-                )
-
-                gold_score += 10
+        drivers = score_result.get(
+            "drivers",
+            []
+        )
 
 
-            elif daily_change < 0:
-
-                risks.append(
-                    "negative_daily_gold_change"
-                )
-
-                gold_score -= 10
-
-
-
-        gold_score = max(
-            0,
-            min(
-                100,
-                gold_score
-            )
+        risks = score_result.get(
+            "risks",
+            []
         )
 
 
