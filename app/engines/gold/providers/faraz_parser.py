@@ -2,7 +2,6 @@ import re
 import json
 from typing import Dict, Any
 
-
 class FarazParser:
     """
     Faraz Parser V32
@@ -51,13 +50,11 @@ class FarazParser:
                     .replace('\\\\', '\\')
                 )
 
-
                 if source == "market":
 
                     rows = self.extract_rows_array(
                         decoded
                     )
-
 
                     if rows:
 
@@ -71,12 +68,10 @@ class FarazParser:
                             result
                         )
 
-
                     self.extract_coins_from_payload(
                         decoded,
                         result
                     )
-
 
                 elif source == "gold18":
 
@@ -85,19 +80,16 @@ class FarazParser:
                         result
                     )
 
-
             if source == "market":
 
                 self.calculate_coin_bubble(
                     result
                 )
 
-
             print(
                 "FINAL RESULT:",
                 result
             )
-
 
         except Exception as e:
 
@@ -106,15 +98,11 @@ class FarazParser:
                 e
             )
 
-
         print(
             "################################"
         )
 
-
         return result
-
-
 
     def extract_rows_array(
         self,
@@ -125,31 +113,25 @@ class FarazParser:
 
             key = '"rows":'
 
-
             start = text.find(
                 key
             )
 
-
             if start == -1:
 
                 return []
-
 
             start = text.find(
                 '[',
                 start
             )
 
-
             if start == -1:
 
                 return []
 
-
             depth = 0
             end = None
-
 
             for i in range(
                 start,
@@ -160,27 +142,22 @@ class FarazParser:
 
                     depth += 1
 
-
                 elif text[i] == ']':
 
                     depth -= 1
-
 
                     if depth == 0:
 
                         end = i + 1
                         break
 
-
             if not end:
 
                 return []
 
-
             return json.loads(
                 text[start:end]
             )
-
 
         except Exception as e:
 
@@ -190,7 +167,8 @@ class FarazParser:
             )
 
             return []
-         def parse_rows(
+
+    def parse_rows(
         self,
         rows,
         result
@@ -205,7 +183,6 @@ class FarazParser:
                 )
             ).lower()
 
-
             name = str(
                 row.get(
                     "persianName",
@@ -213,13 +190,11 @@ class FarazParser:
                 )
             )
 
-
             price = self.clean(
                 row.get(
                     "lastPrice"
                 )
             )
-
 
             change = self.clean(
                 row.get(
@@ -227,13 +202,11 @@ class FarazParser:
                 )
             )
 
-
             print(
                 "ROW:",
                 symbol,
                 price
             )
-
 
             if (
                 "abshode" in symbol
@@ -247,8 +220,6 @@ class FarazParser:
                     "mesghal_price"
                 ] = price
 
-
-
             if (
                 "harat" in symbol
                 or
@@ -261,14 +232,11 @@ class FarazParser:
                     "usd_free_rate"
                 ] = price
 
-
                 if change is not None:
 
                     result[
                         "usd_change"
                     ] = change
-
-
 
             if (
                 "emami" in symbol
@@ -284,13 +252,10 @@ class FarazParser:
                     "coin_emami"
                 ] = price
 
-
                 print(
                     "COIN EMAMI FOUND IN ROW:",
                     price
                 )
-
-
 
             if (
                 "bahar" in symbol
@@ -306,21 +271,16 @@ class FarazParser:
                     "coin_bahar"
                 ] = price
 
-
                 print(
                     "COIN BAHAR FOUND IN ROW:",
                     price
                 )
-
-
 
             if change is not None:
 
                 result[
                     "gold_daily_change"
                 ] = change
-
-
 
     def extract_coins_from_payload(
         self,
@@ -334,7 +294,6 @@ class FarazParser:
                 "coin_emami"
             ) is None:
 
-
                 patterns = [
 
                     r'سکه امامی.{0,300}?lastPrice["\': ]+([0-9,.]+)',
@@ -345,7 +304,6 @@ class FarazParser:
 
                 ]
 
-
                 for pattern in patterns:
 
                     match = re.search(
@@ -353,7 +311,6 @@ class FarazParser:
                         text,
                         re.IGNORECASE
                     )
-
 
                     if match:
 
@@ -363,7 +320,6 @@ class FarazParser:
                             match.group(1)
                         )
 
-
                         print(
                             "COIN EMAMI FOUND PAYLOAD:",
                             result["coin_emami"]
@@ -371,12 +327,9 @@ class FarazParser:
 
                         break
 
-
-
             if result.get(
                 "coin_bahar"
             ) is None:
-
 
                 patterns = [
 
@@ -388,7 +341,6 @@ class FarazParser:
 
                 ]
 
-
                 for pattern in patterns:
 
                     match = re.search(
@@ -396,7 +348,6 @@ class FarazParser:
                         text,
                         re.IGNORECASE
                     )
-
 
                     if match:
 
@@ -406,15 +357,12 @@ class FarazParser:
                             match.group(1)
                         )
 
-
                         print(
                             "COIN BAHAR FOUND PAYLOAD:",
                             result["coin_bahar"]
                         )
 
                         break
-
-
 
             if (
                 result.get("coin_emami") is None
@@ -428,14 +376,14 @@ class FarazParser:
                         "COIN KEY FOUND IN PAYLOAD"
                     )
 
-
         except Exception as e:
 
             print(
                 "COIN EXTRACTION ERROR:",
                 e
             )
-                def calculate_coin_bubble(
+
+    def calculate_coin_bubble(
         self,
         result: Dict
     ):
@@ -444,11 +392,9 @@ class FarazParser:
             "coin_emami"
         )
 
-
         mesghal = result.get(
             "mesghal_price"
         )
-
 
         if coin and mesghal:
 
@@ -459,7 +405,6 @@ class FarazParser:
                     0.235
                 )
 
-
                 bubble = (
                     (
                         coin -
@@ -469,7 +414,6 @@ class FarazParser:
                     theoretical
                 ) * 100
 
-
                 result[
                     "coin_bubble"
                 ] = round(
@@ -477,12 +421,10 @@ class FarazParser:
                     2
                 )
 
-
                 print(
                     "COIN BUBBLE:",
                     result["coin_bubble"]
                 )
-
 
             except Exception as e:
 
@@ -491,20 +433,16 @@ class FarazParser:
                     e
                 )
 
-
-
     def extract_gold18(
         self,
         text,
         result
     ):
 
-
         prices = re.findall(
             r'"price":(\d+)',
             text
         )
-
 
         if prices:
 
@@ -514,13 +452,10 @@ class FarazParser:
                 prices[-1]
             )
 
-
-
         volumes = re.findall(
             r'"volume":(\d+)',
             text
         )
-
 
         if volumes:
 
@@ -530,13 +465,10 @@ class FarazParser:
                 volumes[-1]
             )
 
-
-
         changes = re.findall(
             r'"changePercent":(-?\d+\.?\d*)',
             text
         )
-
 
         if changes:
 
@@ -545,8 +477,6 @@ class FarazParser:
             ] = float(
                 changes[-1]
             )
-
-
 
     def clean(
         self,
@@ -559,7 +489,6 @@ class FarazParser:
 
                 return None
 
-
             return float(
                 str(value)
                 .replace(
@@ -571,7 +500,6 @@ class FarazParser:
                     ""
                 )
             )
-
 
         except:
 
