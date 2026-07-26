@@ -1,5 +1,1 @@
-self.parser = FarazParser()
-
-self.coin_parser = CoinParser()
-
-self.normalizer = GoldNormalizer()
+from .faraz_provider import FarazGoldProvider
