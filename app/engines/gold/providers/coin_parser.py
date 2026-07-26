@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 class FarazParser:
     """
-    Faraz Parser V31
+    Faraz Parser V32
 
     Extract:
     - mesghal_price
@@ -25,7 +25,7 @@ class FarazParser:
         source: str = "market"
     ) -> Dict[str, Any]:
 
-        print("######## FARAZ PARSER V31 DEBUG ########")
+        print("######## FARAZ PARSER V32 DEBUG ########")
         print("SOURCE:", source)
 
         result = {}
@@ -73,6 +73,14 @@ class FarazParser:
                         )
 
 
+                    # NEW V32
+                    # Search coins outside rows
+                    self.extract_coins_from_payload(
+                        decoded,
+                        result
+                    )
+
+
                 elif source == "gold18":
 
                     self.extract_gold18(
@@ -106,6 +114,7 @@ class FarazParser:
             "################################"
         )
 
+
         return result
 
 
@@ -119,11 +128,14 @@ class FarazParser:
 
             key = '"rows":'
 
+
             start = text.find(
                 key
             )
 
+
             if start == -1:
+
                 return []
 
 
@@ -132,7 +144,9 @@ class FarazParser:
                 start
             )
 
+
             if start == -1:
+
                 return []
 
 
@@ -145,19 +159,26 @@ class FarazParser:
                 len(text)
             ):
 
+
                 if text[i] == '[':
+
                     depth += 1
 
 
                 elif text[i] == ']':
+
                     depth -= 1
 
+
                     if depth == 0:
+
                         end = i + 1
                         break
 
 
+
             if not end:
+
                 return []
 
 
@@ -174,15 +195,11 @@ class FarazParser:
             )
 
             return []
-
-
-
-    def parse_rows(
+                def parse_rows(
         self,
         rows,
         result
     ):
-
 
         for row in rows:
 
@@ -221,7 +238,6 @@ class FarazParser:
                 symbol,
                 price
             )
-
 
 
             # -------------------------
@@ -266,12 +282,6 @@ class FarazParser:
                     ] = change
 
 
-                    print(
-                        "USD CHANGE FOUND:",
-                        change
-                    )
-
-
 
             # -------------------------
             # Coin Emami
@@ -293,7 +303,7 @@ class FarazParser:
 
 
                 print(
-                    "COIN EMAMI FOUND:",
+                    "COIN EMAMI FOUND IN ROW:",
                     price
                 )
 
@@ -319,13 +329,11 @@ class FarazParser:
 
 
                 print(
-                    "COIN BAHAR FOUND:",
+                    "COIN BAHAR FOUND IN ROW:",
                     price
                 )
 
 
-
-            # Gold momentum
 
             if change is not None:
 
@@ -335,7 +343,134 @@ class FarazParser:
 
 
 
-    def calculate_coin_bubble(
+    # =====================================================
+    # V32 NEW:
+    # Extract coins from full payload
+    # =====================================================
+
+    def extract_coins_from_payload(
+        self,
+        text: str,
+        result: Dict
+    ):
+
+
+        try:
+
+            # Search Imam Coin
+
+            if result.get(
+                "coin_emami"
+            ) is None:
+
+
+                patterns = [
+
+                    r'سکه امامی.{0,300}?lastPrice["\': ]+([0-9,.]+)',
+
+                    r'emami.{0,300}?lastPrice["\': ]+([0-9,.]+)',
+
+                    r'imam.{0,300}?lastPrice["\': ]+([0-9,.]+)'
+
+                ]
+
+
+                for pattern in patterns:
+
+                    match = re.search(
+                        pattern,
+                        text,
+                        re.IGNORECASE
+                    )
+
+
+                    if match:
+
+                        result[
+                            "coin_emami"
+                        ] = self.clean(
+                            match.group(1)
+                        )
+
+
+                        print(
+                            "COIN EMAMI FOUND PAYLOAD:",
+                            result["coin_emami"]
+                        )
+
+                        break
+
+
+
+            # Search Bahar Coin
+
+            if result.get(
+                "coin_bahar"
+            ) is None:
+
+
+                patterns = [
+
+                    r'سکه بهار.{0,300}?lastPrice["\': ]+([0-9,.]+)',
+
+                    r'bahar.{0,300}?lastPrice["\': ]+([0-9,.]+)',
+
+                    r'azadi.{0,300}?lastPrice["\': ]+([0-9,.]+)'
+
+                ]
+
+
+                for pattern in patterns:
+
+                    match = re.search(
+                        pattern,
+                        text,
+                        re.IGNORECASE
+                    )
+
+
+                    if match:
+
+                        result[
+                            "coin_bahar"
+                        ] = self.clean(
+                            match.group(1)
+                        )
+
+
+                        print(
+                            "COIN BAHAR FOUND PAYLOAD:",
+                            result["coin_bahar"]
+                        )
+
+                        break
+
+
+
+            # Alternative generic coin scan
+
+            if (
+                result.get("coin_emami") is None
+                or
+                result.get("coin_bahar") is None
+            ):
+
+
+                if "سکه" in text:
+
+                    print(
+                        "COIN KEY FOUND IN PAYLOAD"
+                    )
+
+
+
+        except Exception as e:
+
+            print(
+                "COIN EXTRACTION ERROR:",
+                e
+            )
+                def calculate_coin_bubble(
         self,
         result: Dict
     ):
@@ -344,6 +479,7 @@ class FarazParser:
         coin = result.get(
             "coin_emami"
         )
+
 
         mesghal = result.get(
             "mesghal_price"
@@ -379,7 +515,7 @@ class FarazParser:
 
 
                 print(
-                    "COIN BUBBLE CALCULATED:",
+                    "COIN BUBBLE:",
                     result["coin_bubble"]
                 )
 
