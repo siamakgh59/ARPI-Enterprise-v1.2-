@@ -21,9 +21,8 @@ class FarazGoldProvider:
        - coins
 
     2- geramTalaHejdah
-       - 18K gold price
+       - gold18
     """
-
 
     def __init__(self):
 
@@ -41,6 +40,7 @@ class FarazGoldProvider:
         self.gold18_url = (
             "https://faraz.io/markets/gold-currency/geramTalaHejdah"
         )
+
 
 
     def fetch_gold18_page(self):
@@ -109,17 +109,14 @@ class FarazGoldProvider:
 
         try:
 
+
             print(
                 "######## GOLD PROVIDER ACTIVE ########"
             )
 
 
-            # =========================
-            # SOURCE 1
-            # MARKET
-            # =========================
-
             market_html = self.scraper.fetch_page()
+
 
 
             if isinstance(
@@ -131,17 +128,11 @@ class FarazGoldProvider:
 
 
 
-            # Main parser
+            # -------------------------
+            # Main Gold Parser
+            # -------------------------
 
             market_data = self.parser.parse(
-                market_html,
-                source="market"
-            )
-
-
-            # Coin parser
-
-            coin_data = self.coin_parser.parse(
                 market_html,
                 source="market"
             )
@@ -153,21 +144,27 @@ class FarazGoldProvider:
             )
 
 
+
+            # -------------------------
+            # Coin Parser
+            # -------------------------
+
+            coin_data = self.coin_parser.parse(
+                market_html,
+                source="market"
+            )
+
+
             print(
                 "COIN DATA:",
                 coin_data
             )
 
 
-            market_data.update(
-                coin_data
-            )
 
-
-            # =========================
-            # SOURCE 2
-            # GOLD18
-            # =========================
+            # -------------------------
+            # Gold18 Parser
+            # -------------------------
 
             gold18_html = self.fetch_gold18_page()
 
@@ -190,15 +187,20 @@ class FarazGoldProvider:
 
 
 
-            # =========================
-            # MERGE
-            # =========================
+            # -------------------------
+            # Merge All Data
+            # -------------------------
 
             parsed_data = {}
 
 
             parsed_data.update(
                 market_data
+            )
+
+
+            parsed_data.update(
+                coin_data
             )
 
 
@@ -237,6 +239,7 @@ class FarazGoldProvider:
 
 
         except Exception as e:
+
 
             print(
                 "Faraz Provider Error:",
