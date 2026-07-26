@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 class FarazParser:
     """
-    Faraz Parser V28
+    Faraz Parser V29
 
     Extract:
     - mesghal_price
@@ -24,7 +24,7 @@ class FarazParser:
         source: str = "market"
     ) -> Dict[str, Any]:
 
-        print("######## FARAZ PARSER V28 DEBUG ########")
+        print("######## FARAZ PARSER V29 DEBUG ########")
         print("SOURCE:", source)
 
         result = {}
@@ -36,7 +36,6 @@ class FarazParser:
                 html,
                 re.DOTALL
             )
-
 
             print(
                 "PAYLOAD COUNT:",
@@ -59,7 +58,6 @@ class FarazParser:
                         decoded
                     )
 
-
                     if rows:
 
                         print(
@@ -73,12 +71,24 @@ class FarazParser:
                         )
 
 
+                    # New V29 full payload search
+                    self.search_coin_data(
+                        decoded,
+                        result
+                    )
+
+
                 elif source == "gold18":
 
                     self.extract_gold18(
                         decoded,
                         result
                     )
+
+
+            self.calculate_coin_bubble(
+                result
+            )
 
 
             print(
@@ -98,7 +108,6 @@ class FarazParser:
         print(
             "################################"
         )
-
 
         return result
 
@@ -124,19 +133,16 @@ class FarazParser:
                 start
             )
 
+
             if start == -1:
                 return []
 
 
             depth = 0
-
             end = None
 
 
-            for i in range(
-                start,
-                len(text)
-            ):
+            for i in range(start, len(text)):
 
                 if text[i] == '[':
                     depth += 1
@@ -175,9 +181,7 @@ class FarazParser:
         result
     ):
 
-
         for row in rows:
-
 
             symbol = str(
                 row.get(
@@ -214,15 +218,12 @@ class FarazParser:
             )
 
 
-
-            # مظنه
-
             if (
                 "abshode" in symbol
                 or
-                "مظنه" in name
-                or
                 "آبشده" in name
+                or
+                "مظنه" in name
             ):
 
                 result[
@@ -230,8 +231,6 @@ class FarazParser:
                 ] = price
 
 
-
-            # دلار
 
             if (
                 "harat" in symbol
@@ -244,8 +243,6 @@ class FarazParser:
                 ] = price
 
 
-
-            # سکه امامی
 
             if (
                 "emami" in symbol
@@ -260,8 +257,6 @@ class FarazParser:
                 ] = price
 
 
-
-            # سکه بهار آزادی
 
             if (
                 "bahar" in symbol
@@ -295,10 +290,76 @@ class FarazParser:
 
 
 
-        # محاسبه حباب سکه
+    def search_coin_data(
+        self,
+        text,
+        result
+    ):
 
-        self.calculate_coin_bubble(
-            result
+        """
+        Search entire Next.js payload
+        for hidden coin data
+        """
+
+        print(
+            "######## COIN SEARCH DEBUG ########"
+        )
+
+
+        patterns = {
+
+
+            "coin_emami": [
+
+                r'"emami".{0,200}?"lastPrice":(\d+)',
+
+                r'"imam.{0,200}?"lastPrice":(\d+)'
+
+            ],
+
+
+            "coin_bahar": [
+
+                r'"bahar".{0,200}?"lastPrice":(\d+)',
+
+                r'"azadi".{0,200}?"lastPrice":(\d+)'
+
+            ]
+
+        }
+
+
+
+        for field, field_patterns in patterns.items():
+
+            for pattern in field_patterns:
+
+                match = re.search(
+                    pattern,
+                    text,
+                    re.IGNORECASE
+                )
+
+
+                if match:
+
+                    result[field] = float(
+                        match.group(1)
+                    )
+
+
+                    print(
+                        field,
+                        "FOUND:",
+                        result[field]
+                    )
+
+                    break
+
+
+
+        print(
+            "################################"
         )
 
 
@@ -313,6 +374,7 @@ class FarazParser:
             "coin_emami"
         )
 
+
         mesghal = result.get(
             "mesghal_price"
         )
@@ -320,12 +382,10 @@ class FarazParser:
 
         if coin and mesghal:
 
-
             try:
 
                 theoretical = (
-                    mesghal *
-                    0.235
+                    mesghal * 0.235
                 )
 
 
