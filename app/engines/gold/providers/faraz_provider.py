@@ -11,7 +11,7 @@ from .normalizer import GoldNormalizer
 
 class FarazGoldProvider:
     """
-    Faraz.io Gold Market Provider V9
+    Faraz.io Gold Market Provider V10
 
     Sources:
 
@@ -27,6 +27,10 @@ class FarazGoldProvider:
     3- geramTalaHejdah
        - gold18
        - volume
+
+    Logic:
+    - Parser extracted values have priority
+    - Calculated values are fallback only
     """
 
     def __init__(self):
@@ -41,13 +45,16 @@ class FarazGoldProvider:
 
         self.normalizer = GoldNormalizer()
 
+
         self.coin_url = (
             "https://faraz.io/markets/gold-currency?page=2"
         )
 
+
         self.gold18_url = (
             "https://faraz.io/markets/gold-currency/geramTalaHejdah"
         )
+
 
 
     def fetch_page(
@@ -67,13 +74,16 @@ class FarazGoldProvider:
 
             }
 
+
             response = httpx.get(
                 url,
                 headers=headers,
                 timeout=20
             )
 
+
             response.raise_for_status()
+
 
             return response.text
 
@@ -96,10 +106,12 @@ class FarazGoldProvider:
             "######## COIN FETCH ########"
         )
 
+
         print(
             "URL:",
             self.coin_url
         )
+
 
         html = self.fetch_page(
             self.coin_url
@@ -118,6 +130,7 @@ class FarazGoldProvider:
             "############################"
         )
 
+
         return html
 
 
@@ -128,10 +141,12 @@ class FarazGoldProvider:
             "######## GOLD18 FETCH ########"
         )
 
+
         print(
             "URL:",
             self.gold18_url
         )
+
 
         html = self.fetch_page(
             self.gold18_url
@@ -150,6 +165,7 @@ class FarazGoldProvider:
             "################################"
         )
 
+
         return html
 
 
@@ -163,7 +179,10 @@ class FarazGoldProvider:
             )
 
 
-            # Main market
+
+            # -------------------------------
+            # Market page
+            # -------------------------------
 
             market_html = (
                 self.scraper.fetch_page()
@@ -192,7 +211,9 @@ class FarazGoldProvider:
 
 
 
-            # Coin
+            # -------------------------------
+            # Coin page
+            # -------------------------------
 
             coin_data = {}
 
@@ -219,7 +240,9 @@ class FarazGoldProvider:
 
 
 
-            # Gold18
+            # -------------------------------
+            # Gold18 page
+            # -------------------------------
 
             gold18_data = {}
 
@@ -246,7 +269,9 @@ class FarazGoldProvider:
 
 
 
+            # -------------------------------
             # Merge
+            # -------------------------------
 
             parsed_data = {}
 
@@ -267,49 +292,67 @@ class FarazGoldProvider:
 
 
 
-            # ---------------------------------
-            # Calculate Coin Bubble
-            # ---------------------------------
+            # -------------------------------
+            # Coin Bubble Handling
+            # Parser value has priority
+            # -------------------------------
 
             try:
 
-                coin = parsed_data.get(
-                    "coin_emami"
-                )
-
-                mesghal = parsed_data.get(
-                    "mesghal_price"
+                existing_bubble = parsed_data.get(
+                    "coin_bubble"
                 )
 
 
-                if coin and mesghal:
-
-                    theoretical_price = (
-                        mesghal * 0.235
-                    )
-
-
-                    bubble = (
-                        (
-                            coin - theoretical_price
-                        )
-                        /
-                        theoretical_price
-                    ) * 100
-
-
-                    parsed_data[
-                        "coin_bubble"
-                    ] = round(
-                        bubble,
-                        2
-                    )
-
+                if existing_bubble:
 
                     print(
-                        "COIN BUBBLE:",
-                        parsed_data["coin_bubble"]
+                        "COIN BUBBLE FROM PARSER:",
+                        existing_bubble
                     )
+
+
+                else:
+
+                    coin = parsed_data.get(
+                        "coin_emami"
+                    )
+
+
+                    mesghal = parsed_data.get(
+                        "mesghal_price"
+                    )
+
+
+                    if coin and mesghal:
+
+
+                        theoretical_price = (
+                            mesghal * 0.235
+                        )
+
+
+                        bubble = (
+                            (
+                                coin - theoretical_price
+                            )
+                            /
+                            theoretical_price
+                        ) * 100
+
+
+                        parsed_data[
+                            "coin_bubble"
+                        ] = round(
+                            bubble,
+                            2
+                        )
+
+
+                        print(
+                            "COIN BUBBLE CALCULATED:",
+                            parsed_data["coin_bubble"]
+                        )
 
 
             except Exception as e:
@@ -325,9 +368,11 @@ class FarazGoldProvider:
                 "######## FINAL PARSED GOLD ########"
             )
 
+
             print(
                 parsed_data
             )
+
 
             print(
                 "###################################"
@@ -358,6 +403,7 @@ class FarazGoldProvider:
                 "Faraz Provider Error:",
                 e
             )
+
 
             return self._fallback()
 
