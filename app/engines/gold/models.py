@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 
@@ -73,4 +73,6 @@ class GoldReport(BaseModel):
 
     missing_inputs: List[str]
 
-    timestamp: datetime = datetime.utcnow()
+    timestamp: datetime = Field(
+        default_factory=datetime.utcnow
+    )
