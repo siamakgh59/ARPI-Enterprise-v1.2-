@@ -5,9 +5,9 @@ from typing import Dict, Any
 
 class FarazParser:
     """
-    Faraz Parser V27 Stable
+    Faraz Parser V28
 
-    استخراج:
+    Extract:
     - mesghal_price
     - usd_free_rate
     - gold18_price
@@ -15,8 +15,8 @@ class FarazParser:
     - gold_daily_change
     - coin_emami
     - coin_bahar
+    - coin_bubble
     """
-
 
     def parse(
         self,
@@ -24,7 +24,7 @@ class FarazParser:
         source: str = "market"
     ) -> Dict[str, Any]:
 
-        print("######## FARAZ PARSER V27 DEBUG ########")
+        print("######## FARAZ PARSER V28 DEBUG ########")
         print("SOURCE:", source)
 
         result = {}
@@ -44,8 +44,7 @@ class FarazParser:
             )
 
 
-            for index, payload in enumerate(payloads):
-
+            for payload in payloads:
 
                 decoded = (
                     payload
@@ -63,12 +62,10 @@ class FarazParser:
 
                     if rows:
 
-
                         print(
                             "ROWS FOUND:",
                             len(rows)
                         )
-
 
                         self.parse_rows(
                             rows,
@@ -78,12 +75,10 @@ class FarazParser:
 
                 elif source == "gold18":
 
-
                     self.extract_gold18(
                         decoded,
                         result
                     )
-
 
 
             print(
@@ -109,24 +104,18 @@ class FarazParser:
 
 
 
-
     def extract_rows_array(
         self,
         text: str
     ):
 
-
         try:
 
             key = '"rows":'
 
-            start = text.find(
-                key
-            )
-
+            start = text.find(key)
 
             if start == -1:
-
                 return []
 
 
@@ -135,13 +124,12 @@ class FarazParser:
                 start
             )
 
-
             if start == -1:
-
                 return []
 
 
             depth = 0
+
             end = None
 
 
@@ -150,51 +138,34 @@ class FarazParser:
                 len(text)
             ):
 
-
                 if text[i] == '[':
-
                     depth += 1
 
-
                 elif text[i] == ']':
-
                     depth -= 1
 
-
                     if depth == 0:
-
                         end = i + 1
                         break
 
 
-
             if not end:
-
                 return []
 
 
-
-            array_text = text[
-                start:end
-            ]
-
-
             return json.loads(
-                array_text
+                text[start:end]
             )
 
 
         except Exception as e:
 
-
             print(
-                "ROWS EXTRACT ERROR:",
+                "ROWS ERROR:",
                 e
             )
 
             return []
-
-
 
 
 
@@ -244,7 +215,7 @@ class FarazParser:
 
 
 
-            # مظنه آبشده
+            # مظنه
 
             if (
                 "abshode" in symbol
@@ -276,7 +247,13 @@ class FarazParser:
 
             # سکه امامی
 
-            if "emami" in symbol:
+            if (
+                "emami" in symbol
+                or
+                "imam" in symbol
+                or
+                "امامی" in name
+            ):
 
                 result[
                     "coin_emami"
@@ -284,9 +261,15 @@ class FarazParser:
 
 
 
-            # سکه بهار
+            # سکه بهار آزادی
 
-            if "bahar" in symbol:
+            if (
+                "bahar" in symbol
+                or
+                "azadi" in symbol
+                or
+                "بهار" in name
+            ):
 
                 result[
                     "coin_bahar"
@@ -302,14 +285,8 @@ class FarazParser:
                         "gold_daily_change"
                     ] = float(
                         str(change)
-                        .replace(
-                            "%",
-                            ""
-                        )
-                        .replace(
-                            "+",
-                            ""
-                        )
+                        .replace("%","")
+                        .replace("+","")
                     )
 
                 except:
@@ -317,6 +294,62 @@ class FarazParser:
                     pass
 
 
+
+        # محاسبه حباب سکه
+
+        self.calculate_coin_bubble(
+            result
+        )
+
+
+
+    def calculate_coin_bubble(
+        self,
+        result: Dict
+    ):
+
+
+        coin = result.get(
+            "coin_emami"
+        )
+
+        mesghal = result.get(
+            "mesghal_price"
+        )
+
+
+        if coin and mesghal:
+
+
+            try:
+
+                theoretical = (
+                    mesghal *
+                    0.235
+                )
+
+
+                bubble = (
+                    (
+                        coin -
+                        theoretical
+                    )
+                    /
+                    theoretical
+                ) * 100
+
+
+                result[
+                    "coin_bubble"
+                ] = round(
+                    bubble,
+                    2
+                )
+
+
+            except:
+
+                pass
 
 
 
@@ -327,70 +360,51 @@ class FarazParser:
     ):
 
 
-        try:
+        prices = re.findall(
+            r'"price":(\d+)',
+            text
+        )
 
 
-            # price
+        if prices:
 
-            prices = re.findall(
-                r'"price":(\d+)',
-                text
+            result[
+                "gold18_price"
+            ] = float(
+                prices[-1]
             )
 
 
-            if prices:
 
-                result[
-                    "gold18_price"
-                ] = float(
-                    prices[-1]
-                )
+        volumes = re.findall(
+            r'"volume":(\d+)',
+            text
+        )
 
 
+        if volumes:
 
-            # volume
-
-            volumes = re.findall(
-                r'"volume":(\d+)',
-                text
+            result[
+                "volume"
+            ] = float(
+                volumes[-1]
             )
 
 
-            if volumes:
 
-                result[
-                    "volume"
-                ] = float(
-                    volumes[-1]
-                )
+        changes = re.findall(
+            r'"changePercent":(-?\d+\.?\d*)',
+            text
+        )
 
 
+        if changes:
 
-            # change
-
-            changes = re.findall(
-                r'"changePercent":(-?\d+\.?\d*)',
-                text
+            result[
+                "gold_daily_change"
+            ] = float(
+                changes[-1]
             )
-
-
-            if changes:
-
-                result[
-                    "gold_daily_change"
-                ] = float(
-                    changes[-1]
-                )
-
-
-        except Exception as e:
-
-            print(
-                "GOLD18 ERROR:",
-                e
-            )
-
-
 
 
 
@@ -402,7 +416,6 @@ class FarazParser:
         try:
 
             if value is None:
-
                 return None
 
 
