@@ -5,11 +5,12 @@ from typing import Dict, Any
 
 class FarazParser:
     """
-    Faraz Parser V30
+    Faraz Parser V31
 
     Extract:
     - mesghal_price
     - usd_free_rate
+    - usd_change
     - gold18_price
     - volume
     - gold_daily_change
@@ -24,7 +25,7 @@ class FarazParser:
         source: str = "market"
     ) -> Dict[str, Any]:
 
-        print("######## FARAZ PARSER V30 DEBUG ########")
+        print("######## FARAZ PARSER V31 DEBUG ########")
         print("SOURCE:", source)
 
         result = {}
@@ -105,7 +106,6 @@ class FarazParser:
             "################################"
         )
 
-
         return result
 
 
@@ -117,73 +117,53 @@ class FarazParser:
 
         try:
 
-            matches = []
+            key = '"rows":'
 
-            start_pos = 0
+            start = text.find(
+                key
+            )
 
-            while True:
-
-                index = text.find(
-                    '"rows":',
-                    start_pos
-                )
-
-                if index == -1:
-                    break
+            if start == -1:
+                return []
 
 
-                start = text.find(
-                    '[',
-                    index
-                )
+            start = text.find(
+                '[',
+                start
+            )
+
+            if start == -1:
+                return []
 
 
-                if start == -1:
-                    break
+            depth = 0
+            end = None
 
 
-                depth = 0
-                end = None
+            for i in range(
+                start,
+                len(text)
+            ):
+
+                if text[i] == '[':
+                    depth += 1
 
 
-                for i in range(
-                    start,
-                    len(text)
-                ):
+                elif text[i] == ']':
+                    depth -= 1
 
-                    if text[i] == '[':
-                        depth += 1
-
-                    elif text[i] == ']':
-                        depth -= 1
-
-                        if depth == 0:
-
-                            end = i + 1
-                            break
+                    if depth == 0:
+                        end = i + 1
+                        break
 
 
-                if end:
-
-                    try:
-
-                        rows = json.loads(
-                            text[start:end]
-                        )
-
-                        matches.extend(
-                            rows
-                        )
-
-                    except:
-
-                        pass
+            if not end:
+                return []
 
 
-                start_pos = start + 1
-
-
-            return matches
+            return json.loads(
+                text[start:end]
+            )
 
 
         except Exception as e:
@@ -206,7 +186,6 @@ class FarazParser:
 
         for row in rows:
 
-
             symbol = str(
                 row.get(
                     "symbol",
@@ -220,8 +199,7 @@ class FarazParser:
                     "persianName",
                     ""
                 )
-            ).lower()
-
+            )
 
 
             price = self.clean(
@@ -231,8 +209,10 @@ class FarazParser:
             )
 
 
-            change = row.get(
-                "changePercent"
+            change = self.clean(
+                row.get(
+                    "changePercent"
+                )
             )
 
 
@@ -243,14 +223,17 @@ class FarazParser:
             )
 
 
+
+            # -------------------------
             # Mesghal
+            # -------------------------
 
             if (
                 "abshode" in symbol
                 or
-                "آبشده" in name
-                or
                 "مظنه" in name
+                or
+                "آبشده" in name
             ):
 
                 result[
@@ -259,7 +242,9 @@ class FarazParser:
 
 
 
+            # -------------------------
             # USD
+            # -------------------------
 
             if (
                 "harat" in symbol
@@ -274,8 +259,23 @@ class FarazParser:
                 ] = price
 
 
+                if change is not None:
 
+                    result[
+                        "usd_change"
+                    ] = change
+
+
+                    print(
+                        "USD CHANGE FOUND:",
+                        change
+                    )
+
+
+
+            # -------------------------
             # Coin Emami
+            # -------------------------
 
             if (
                 "emami" in symbol
@@ -284,9 +284,7 @@ class FarazParser:
                 or
                 "sekkeemami" in symbol
                 or
-                "coinemami" in symbol
-                or
-                "امامی" in name
+                "سکه امامی" in name
             ):
 
                 result[
@@ -294,15 +292,23 @@ class FarazParser:
                 ] = price
 
 
+                print(
+                    "COIN EMAMI FOUND:",
+                    price
+                )
 
+
+
+            # -------------------------
             # Coin Bahar
+            # -------------------------
 
             if (
                 "bahar" in symbol
                 or
                 "azadi" in symbol
                 or
-                "sekkebahar" in symbol
+                "sekebahar" in symbol
                 or
                 "بهار" in name
             ):
@@ -312,22 +318,20 @@ class FarazParser:
                 ] = price
 
 
+                print(
+                    "COIN BAHAR FOUND:",
+                    price
+                )
 
-            if change:
 
-                try:
 
-                    result[
-                        "gold_daily_change"
-                    ] = float(
-                        str(change)
-                        .replace("%","")
-                        .replace("+","")
-                    )
+            # Gold momentum
 
-                except:
+            if change is not None:
 
-                    pass
+                result[
+                    "gold_daily_change"
+                ] = change
 
 
 
@@ -341,7 +345,6 @@ class FarazParser:
             "coin_emami"
         )
 
-
         mesghal = result.get(
             "mesghal_price"
         )
@@ -352,12 +355,16 @@ class FarazParser:
             try:
 
                 theoretical = (
-                    mesghal * 0.235
+                    mesghal *
+                    0.235
                 )
 
 
                 bubble = (
-                    (coin - theoretical)
+                    (
+                        coin -
+                        theoretical
+                    )
                     /
                     theoretical
                 ) * 100
@@ -372,7 +379,7 @@ class FarazParser:
 
 
                 print(
-                    "COIN BUBBLE:",
+                    "COIN BUBBLE CALCULATED:",
                     result["coin_bubble"]
                 )
 
@@ -457,6 +464,10 @@ class FarazParser:
                 str(value)
                 .replace(
                     ",",
+                    ""
+                )
+                .replace(
+                    "%",
                     ""
                 )
             )
