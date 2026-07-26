@@ -1,31 +1,41 @@
 from datetime import datetime
 from typing import Dict, Any
 
+from .validator import GoldValidator
+from .calculator import GoldCalculator
 from .scoring_engine import GoldScoringEngine
 
 
-
-class GoldEngine:
+class GoldIntelligenceEngine:
     """
     ARPI Gold Intelligence Engine
 
-    Sprint 3.1
+    Sprint 3
     Dynamic Gold Scoring Engine
 
-    Responsibilities:
-    - Receive normalized gold data
-    - Validate input availability
-    - Run dynamic scoring model
-    - Generate signal
-    - Calculate confidence
+    Pipeline:
+
+    Provider
+        |
+    Normalizer
+        |
+    Validator
+        |
+    Calculator
+        |
+    Scoring Engine
+        |
+    Signal Output
     """
 
-
-    VERSION = "3.1.0"
-
+    VERSION = "3.2.0"
 
 
     def __init__(self):
+
+        self.validator = GoldValidator()
+
+        self.calculator = GoldCalculator()
 
         self.scoring_engine = GoldScoringEngine()
 
@@ -36,292 +46,211 @@ class GoldEngine:
         data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Analyze Gold Market Data
+        Main Gold Intelligence Pipeline
         """
 
-        # ---------------------------------
-        # Convert Pydantic Model to Dict
-        # ---------------------------------
 
-        if hasattr(data, "model_dump"):
+        # -----------------------------
+        # Validation
+        # -----------------------------
 
-            data = data.model_dump()
+        validation = self.validator.validate(
+            data
+        )
 
 
-
-        # ---------------------------------
-        # Required Inputs
-        # ---------------------------------
-
-        total_inputs = [
-
-            "xau_usd",
-
-            "dxy",
-
-            "us10y_yield",
-
-            "usd_free_rate",
-
-            "usd_change",
-
-            "gold18_price",
-
-            "mesghal_price",
-
-            "coin_emami",
-
-            "coin_bahar",
-
-            "coin_bubble",
-
-            "gold_daily_change",
-
-            "volume",
-
+        validated_data = validation[
+            "validated_data"
         ]
 
 
 
-        available_inputs = [
+        # -----------------------------
+        # Dynamic Calculation
+        # -----------------------------
 
-            key
-            for key in total_inputs
-            if data.get(key) is not None
+        calculation = self.calculator.calculate(
+            validated_data
+        )
 
+
+
+        # -----------------------------
+        # Weighted Scoring
+        # -----------------------------
+
+        scoring = self.scoring_engine.analyze(
+            validated_data
+        )
+
+
+
+        # Final score fusion
+
+        calculator_score = calculation[
+            "gold_score"
+        ]
+
+        weighted_score = scoring[
+            "gold_score"
         ]
 
 
-
-        missing_inputs = [
-
-            key
-            for key in total_inputs
-            if data.get(key) is None
-
-        ]
-
-
-
-        available_count = len(
-            available_inputs
-        )
-
-
-        total_count = len(
-            total_inputs
+        final_score = round(
+            (
+                calculator_score * 0.6
+                +
+                weighted_score * 0.4
+            ),
+            2
         )
 
 
 
-        # ---------------------------------
-        # Data Quality
-        # ---------------------------------
+        # -----------------------------
+        # Signal
+        # -----------------------------
 
-        if available_count == total_count:
-
-            data_quality = "GOOD"
-
-
-        elif available_count >= 5:
-
-            data_quality = "PARTIAL"
-
-
-        else:
-
-            data_quality = "LOW"
-
-
-
-        # ---------------------------------
-        # Dynamic Gold Scoring
-        # ---------------------------------
-
-        score_result = (
-            self.scoring_engine.analyze(
-                data
-            )
-        )
-
-
-
-        gold_score = score_result.get(
-            "gold_score",
-            50
-        )
-
-
-        drivers = score_result.get(
-            "drivers",
-            []
-        )
-
-
-        risks = score_result.get(
-            "risks",
-            []
-        )
-
-
-
-        # ---------------------------------
-        # Trend & Signal
-        # ---------------------------------
-
-        if gold_score >= 80:
+        if final_score >= 80:
 
             signal = "STRONG BUY"
-
             trend = "BULLISH"
 
 
-        elif gold_score >= 65:
+        elif final_score >= 65:
 
             signal = "BUY"
-
             trend = "BULLISH"
 
 
-        elif gold_score <= 35:
+        elif final_score <= 35:
 
             signal = "SELL"
-
             trend = "BEARISH"
 
 
         else:
 
             signal = "HOLD"
-
             trend = "NEUTRAL"
 
 
 
-        # ---------------------------------
+        # -----------------------------
         # Confidence
-        # ---------------------------------
+        # -----------------------------
 
-        confidence = int(
-            (
-                available_count /
-                total_count
+        confidence = validation[
+            "available_inputs"
+        ] / len(
+            self.validator.GOLD_FIELDS
+        ) * 100
+
+
+        confidence = round(
+            min(
+                95,
+                max(
+                    20,
+                    confidence
+                )
             )
-            *
-            100
         )
 
 
-        confidence = min(
-            95,
-            max(
-                20,
-                confidence
-            )
-        )
-
-
-        if data_quality == "LOW":
-
-            confidence = min(
-                confidence,
-                40
-            )
-
-
-        elif data_quality == "PARTIAL":
-
-            confidence = min(
-                confidence,
-                70
-            )
-
-
-
-        # ---------------------------------
-        # Final Report
-        # ---------------------------------
 
         return {
 
-
             "engine":
-
                 "Gold Intelligence Engine",
 
 
-
             "version":
-
                 self.VERSION,
 
 
-
             "gold_score":
-
-                round(
-                    gold_score,
-                    2
-                ),
-
+                final_score,
 
 
             "trend":
-
                 trend,
 
 
-
             "signal":
-
                 signal,
 
 
-
             "confidence":
-
                 confidence,
 
 
-
             "drivers":
-
-                drivers,
-
+                list(
+                    set(
+                        calculation["drivers"]
+                        +
+                        scoring["drivers"]
+                    )
+                ),
 
 
             "risks":
+                list(
+                    set(
+                        calculation["risks"]
+                        +
+                        scoring["risks"]
+                    )
+                ),
 
-                risks,
 
+            "factor_scores":
+                scoring.get(
+                    "factor_scores",
+                    {}
+                ),
+
+
+            "calculator_score":
+                calculator_score,
+
+
+            "weighted_score":
+                weighted_score,
 
 
             "data_quality":
-
-                data_quality,
-
+                validation[
+                    "data_quality"
+                ],
 
 
             "available_inputs":
-
-                available_count,
-
+                validation[
+                    "available_inputs"
+                ],
 
 
             "missing_inputs":
+                validation[
+                    "missing_inputs"
+                ],
 
-                missing_inputs,
+
+            "invalid_inputs":
+                validation[
+                    "invalid_inputs"
+                ],
 
 
-
-            "available_fields":
-
-                available_inputs,
-
+            "warnings":
+                validation[
+                    "warnings"
+                ],
 
 
             "timestamp":
-
                 datetime.utcnow()
 
         }
