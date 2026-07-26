@@ -19,7 +19,6 @@ class FarazParser:
     - coin_bubble
     """
 
-
     def parse(
         self,
         html: str,
@@ -43,7 +42,6 @@ class FarazParser:
                 "PAYLOAD COUNT:",
                 len(payloads)
             )
-
 
             for payload in payloads:
 
@@ -127,11 +125,14 @@ class FarazParser:
 
             key = '"rows":'
 
+
             start = text.find(
                 key
             )
 
+
             if start == -1:
+
                 return []
 
 
@@ -140,7 +141,9 @@ class FarazParser:
                 start
             )
 
+
             if start == -1:
+
                 return []
 
 
@@ -154,10 +157,12 @@ class FarazParser:
             ):
 
                 if text[i] == '[':
+
                     depth += 1
 
 
                 elif text[i] == ']':
+
                     depth -= 1
 
 
@@ -168,6 +173,7 @@ class FarazParser:
 
 
             if not end:
+
                 return []
 
 
@@ -184,10 +190,7 @@ class FarazParser:
             )
 
             return []
-
-
-
-    def parse_rows(
+         def parse_rows(
         self,
         rows,
         result
@@ -264,7 +267,10 @@ class FarazParser:
                     result[
                         "usd_change"
                     ] = change
-                            if (
+
+
+
+            if (
                 "emami" in symbol
                 or
                 "imam" in symbol
@@ -316,7 +322,6 @@ class FarazParser:
 
 
 
-
     def extract_coins_from_payload(
         self,
         text: str,
@@ -328,6 +333,7 @@ class FarazParser:
             if result.get(
                 "coin_emami"
             ) is None:
+
 
                 patterns = [
 
@@ -371,6 +377,7 @@ class FarazParser:
                 "coin_bahar"
             ) is None:
 
+
                 patterns = [
 
                     r'سکه بهار.{0,300}?lastPrice["\': ]+([0-9,.]+)',
@@ -408,16 +415,27 @@ class FarazParser:
                         break
 
 
+
+            if (
+                result.get("coin_emami") is None
+                or
+                result.get("coin_bahar") is None
+            ):
+
+                if "سکه" in text:
+
+                    print(
+                        "COIN KEY FOUND IN PAYLOAD"
+                    )
+
+
         except Exception as e:
 
             print(
                 "COIN EXTRACTION ERROR:",
                 e
             )
-
-
-
-    def calculate_coin_bubble(
+                def calculate_coin_bubble(
         self,
         result: Dict
     ):
@@ -480,6 +498,7 @@ class FarazParser:
         text,
         result
     ):
+
 
         prices = re.findall(
             r'"price":(\d+)',
