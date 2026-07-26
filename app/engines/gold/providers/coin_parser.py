@@ -12,12 +12,14 @@ class CoinParser:
     - coin_bahar
     - coin_bubble
 
-    Sources:
-    - rows array
-    - next_f payload
+    Supports:
+    - rows extraction
+    - full payload scanning
     - Persian names
     - English symbols
+    - Next.js stream data
     """
+
 
     def parse(
         self,
@@ -53,21 +55,6 @@ class CoinParser:
                 )
 
 
-                if "سکه" in decoded or "coin" in decoded.lower():
-
-                    print(
-                        "######## COIN CONTEXT ########"
-                    )
-
-                    index = decoded.find("سکه")
-
-                    if index != -1:
-
-                        print(
-                            decoded[index:index+500]
-                        )
-
-
                 rows = self.extract_rows_array(
                     decoded
                 )
@@ -86,7 +73,7 @@ class CoinParser:
                     )
 
 
-                self.extract_payload(
+                self.extract_payload_coins(
                     decoded,
                     result
                 )
@@ -115,7 +102,6 @@ class CoinParser:
             "################################"
         )
 
-
         return result
 
 
@@ -133,7 +119,6 @@ class CoinParser:
                 key
             )
 
-
             if start == -1:
                 return []
 
@@ -143,12 +128,13 @@ class CoinParser:
                 start
             )
 
-
             if start == -1:
                 return []
 
 
             depth = 0
+            end = None
+
 
             for i in range(
                 start,
@@ -156,20 +142,23 @@ class CoinParser:
             ):
 
                 if text[i] == '[':
-
                     depth += 1
 
-
                 elif text[i] == ']':
-
                     depth -= 1
 
-
                     if depth == 0:
+                        end = i + 1
+                        break
 
-                        return json.loads(
-                            text[start:i+1]
-                        )
+
+            if not end:
+                return []
+
+
+            return json.loads(
+                text[start:end]
+            )
 
 
         except Exception as e:
@@ -179,17 +168,15 @@ class CoinParser:
                 e
             )
 
-
-        return []
+            return []
 
 
 
     def parse_rows(
         self,
         rows,
-        result: Dict
+        result
     ):
-
 
         for row in rows:
 
@@ -224,23 +211,14 @@ class CoinParser:
             )
 
 
-
-            if (
-                "emami" in symbol
-                or
-                "imam" in symbol
-                or
-                "sekkeemami" in symbol
-                or
-                "سکه امامی" in name
-                or
-                "امامی" in name
+            if self.is_emami(
+                symbol,
+                name
             ):
 
                 result[
                     "coin_emami"
                 ] = price
-
 
                 print(
                     "COIN EMAMI FOUND ROW:",
@@ -248,23 +226,14 @@ class CoinParser:
                 )
 
 
-
-            if (
-                "bahar" in symbol
-                or
-                "azadi" in symbol
-                or
-                "sekebahar" in symbol
-                or
-                "سکه بهار" in name
-                or
-                "بهار" in name
+            if self.is_bahar(
+                symbol,
+                name
             ):
 
                 result[
                     "coin_bahar"
                 ] = price
-
 
                 print(
                     "COIN BAHAR FOUND ROW:",
@@ -273,97 +242,171 @@ class CoinParser:
 
 
 
-    def extract_payload(
+    def extract_payload_coins(
         self,
         text: str,
         result: Dict
     ):
 
+        try:
 
-        patterns_emami = [
-
-            r'سکه.{0,100}?امامی.{0,300}?(?:lastPrice|price)["\':, ]+([0-9,.]+)',
-
-            r'emami.{0,300}?(?:lastPrice|price)["\':, ]+([0-9,.]+)',
-
-            r'imam.{0,300}?(?:lastPrice|price)["\':, ]+([0-9,.]+)'
-
-        ]
-
-
-        patterns_bahar = [
-
-            r'سکه.{0,100}?بهار.{0,300}?(?:lastPrice|price)["\':, ]+([0-9,.]+)',
-
-            r'bahar.{0,300}?(?:lastPrice|price)["\':, ]+([0-9,.]+)',
-
-            r'azadi.{0,300}?(?:lastPrice|price)["\':, ]+([0-9,.]+)'
-
-        ]
+            keywords = [
+                "سکه",
+                "امامی",
+                "بهار",
+                "azadi",
+                "emami",
+                "imam",
+                "bahar",
+                "sekke"
+            ]
 
 
+            for key in keywords:
 
-        if result.get(
-            "coin_emami"
-        ) is None:
-
-
-            for pattern in patterns_emami:
-
-                match = re.search(
-                    pattern,
-                    text,
-                    re.IGNORECASE
+                index = text.lower().find(
+                    key.lower()
                 )
 
+                if index != -1:
 
-                if match:
-
-                    result[
-                        "coin_emami"
-                    ] = self.clean(
-                        match.group(1)
-                    )
-
+                    context = text[
+                        max(0,index-150):
+                        index+300
+                    ]
 
                     print(
-                        "COIN EMAMI FOUND PAYLOAD:",
-                        result["coin_emami"]
+                        "######## COIN CONTEXT ########"
+                    )
+
+                    print(
+                        context
+                    )
+
+                    print(
+                        "##############################"
                     )
 
                     break
 
 
 
-        if result.get(
-            "coin_bahar"
-        ) is None:
+            if result.get(
+                "coin_emami"
+            ) is None:
 
 
-            for pattern in patterns_bahar:
+                patterns = [
 
-                match = re.search(
-                    pattern,
-                    text,
-                    re.IGNORECASE
-                )
+                    r'(?:امامی|emami|imam|sekkeemami).{0,500}?(?:lastPrice|price)["\':, ]+([0-9,.]+)',
+
+                    r'(?:lastPrice|price)["\':, ]+([0-9,.]+).{0,200}?(?:امامی|emami)'
+
+                ]
 
 
-                if match:
+                for pattern in patterns:
 
-                    result[
-                        "coin_bahar"
-                    ] = self.clean(
-                        match.group(1)
+                    match = re.search(
+                        pattern,
+                        text,
+                        re.IGNORECASE
+                    )
+
+                    if match:
+
+                        result[
+                            "coin_emami"
+                        ] = self.clean(
+                            match.group(1)
+                        )
+
+                        print(
+                            "COIN EMAMI FOUND PAYLOAD:",
+                            result["coin_emami"]
+                        )
+
+                        break
+
+
+
+            if result.get(
+                "coin_bahar"
+            ) is None:
+
+
+                patterns = [
+
+                    r'(?:بهار|bahar|azadi|sekebahar).{0,500}?(?:lastPrice|price)["\':, ]+([0-9,.]+)',
+
+                    r'(?:lastPrice|price)["\':, ]+([0-9,.]+).{0,200}?(?:بهار|bahar|azadi)'
+
+                ]
+
+
+                for pattern in patterns:
+
+                    match = re.search(
+                        pattern,
+                        text,
+                        re.IGNORECASE
                     )
 
 
-                    print(
-                        "COIN BAHAR FOUND PAYLOAD:",
-                        result["coin_bahar"]
-                    )
+                    if match:
 
-                    break
+                        result[
+                            "coin_bahar"
+                        ] = self.clean(
+                            match.group(1)
+                        )
+
+                        print(
+                            "COIN BAHAR FOUND PAYLOAD:",
+                            result["coin_bahar"]
+                        )
+
+                        break
+
+
+        except Exception as e:
+
+            print(
+                "PAYLOAD EXTRACTION ERROR:",
+                e
+            )
+
+
+
+    def is_emami(
+        self,
+        symbol,
+        name
+    ):
+
+        return (
+            "emami" in symbol
+            or "imam" in symbol
+            or "sekkeemami" in symbol
+            or "امامی" in name
+            or "سکه امامی" in name
+        )
+
+
+
+    def is_bahar(
+        self,
+        symbol,
+        name
+    ):
+
+        return (
+            "bahar" in symbol
+            or "azadi" in symbol
+            or "sekebahar" in symbol
+            or "بهار" in name
+            or "آزادی" in name
+        )
 
 
 
@@ -384,28 +427,38 @@ class CoinParser:
 
         if coin and mesghal:
 
-            theoretical = mesghal * 0.235
+            try:
+
+                theoretical = mesghal * 0.235
 
 
-            bubble = (
-                (coin - theoretical)
-                /
-                theoretical
-            ) * 100
+                bubble = (
+                    (coin - theoretical)
+                    /
+                    theoretical
+                ) * 100
 
 
-            result[
-                "coin_bubble"
-            ] = round(
-                bubble,
-                2
-            )
+                result[
+                    "coin_bubble"
+                ] = round(
+                    bubble,
+                    2
+                )
 
 
-            print(
-                "COIN BUBBLE:",
-                result["coin_bubble"]
-            )
+                print(
+                    "COIN BUBBLE:",
+                    result["coin_bubble"]
+                )
+
+
+            except Exception as e:
+
+                print(
+                    "BUBBLE ERROR:",
+                    e
+                )
 
 
 
@@ -417,7 +470,6 @@ class CoinParser:
         try:
 
             if value is None:
-
                 return None
 
 
