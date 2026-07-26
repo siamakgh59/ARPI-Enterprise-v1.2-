@@ -18,10 +18,14 @@ class FarazGoldProvider:
     1- gold-currency
        - mesghal
        - usd
-       - coins
 
-    2- geramTalaHejdah
-       - gold18
+    2- gold-currency?page=2
+       - coins
+       - coin_emami
+       - coin_bahar
+
+    3- geramTalaHejdah
+       - 18K gold price
     """
 
     def __init__(self):
@@ -42,19 +46,22 @@ class FarazGoldProvider:
         )
 
 
+        self.coin_url = (
+            "https://faraz.io/markets/gold-currency?page=2"
+        )
+
+
 
     def fetch_gold18_page(self):
 
         try:
 
             headers = {
-
                 "User-Agent":
                 (
                     "Mozilla/5.0 "
                     "(Windows NT 10.0; Win64; x64)"
                 )
-
             }
 
 
@@ -104,6 +111,66 @@ class FarazGoldProvider:
 
 
 
+    def fetch_coin_page(self):
+
+        try:
+
+            headers = {
+                "User-Agent":
+                (
+                    "Mozilla/5.0 "
+                    "(Windows NT 10.0; Win64; x64)"
+                )
+            }
+
+
+            response = httpx.get(
+                self.coin_url,
+                headers=headers,
+                timeout=20
+            )
+
+
+            response.raise_for_status()
+
+
+            html = response.text
+
+
+            print(
+                "######## COIN PAGE FETCH ########"
+            )
+
+            print(
+                "URL:",
+                self.coin_url
+            )
+
+            print(
+                "HTML LENGTH:",
+                len(html)
+            )
+
+            print(
+                "################################"
+            )
+
+
+            return html
+
+
+        except Exception as e:
+
+            print(
+                "Coin Page Fetch Error:",
+                e
+            )
+
+            return None
+
+
+
+
     def fetch_gold_data(self) -> Dict:
 
 
@@ -115,8 +182,14 @@ class FarazGoldProvider:
             )
 
 
-            market_html = self.scraper.fetch_page()
+            # -------------------------
+            # SOURCE 1
+            # Main market
+            # -------------------------
 
+            market_html = (
+                self.scraper.fetch_page()
+            )
 
 
             if isinstance(
@@ -127,10 +200,6 @@ class FarazGoldProvider:
                 return self._fallback()
 
 
-
-            # -------------------------
-            # Main Gold Parser
-            # -------------------------
 
             market_data = self.parser.parse(
                 market_html,
@@ -146,13 +215,25 @@ class FarazGoldProvider:
 
 
             # -------------------------
-            # Coin Parser
+            # SOURCE 2
+            # Coins page
             # -------------------------
 
-            coin_data = self.coin_parser.parse(
-                market_html,
-                source="market"
+            coin_data = {}
+
+
+            coin_html = (
+                self.fetch_coin_page()
             )
+
+
+            if coin_html:
+
+
+                coin_data = self.coin_parser.parse(
+                    coin_html,
+                    source="market"
+                )
 
 
             print(
@@ -163,16 +244,20 @@ class FarazGoldProvider:
 
 
             # -------------------------
-            # Gold18 Parser
+            # SOURCE 3
+            # Gold 18
             # -------------------------
-
-            gold18_html = self.fetch_gold18_page()
-
 
             gold18_data = {}
 
 
+            gold18_html = (
+                self.fetch_gold18_page()
+            )
+
+
             if gold18_html:
+
 
                 gold18_data = self.parser.parse(
                     gold18_html,
@@ -188,7 +273,7 @@ class FarazGoldProvider:
 
 
             # -------------------------
-            # Merge All Data
+            # Merge
             # -------------------------
 
             parsed_data = {}
@@ -209,6 +294,7 @@ class FarazGoldProvider:
             )
 
 
+
             print(
                 "######## FINAL PARSED GOLD ########"
             )
@@ -223,8 +309,10 @@ class FarazGoldProvider:
 
 
 
-            normalized = self.normalizer.normalize(
-                parsed_data
+            normalized = (
+                self.normalizer.normalize(
+                    parsed_data
+                )
             )
 
 
@@ -248,6 +336,7 @@ class FarazGoldProvider:
 
 
             return self._fallback()
+
 
 
 
