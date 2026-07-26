@@ -1,5 +1,12 @@
-from .faraz_scraper import FarazScraper
+from .faraz_gold_provider import FarazGoldProvider
 from .faraz_parser import FarazParser
 from .coin_parser import CoinParser
-from .faraz_provider import FarazGoldProvider
 from .normalizer import GoldNormalizer
+
+
+__all__ = [
+    "FarazGoldProvider",
+    "FarazParser",
+    "CoinParser",
+    "GoldNormalizer",
+]
