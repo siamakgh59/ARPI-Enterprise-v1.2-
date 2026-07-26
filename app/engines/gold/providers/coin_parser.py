@@ -5,19 +5,18 @@ from typing import Dict, Any
 
 class CoinParser:
     """
-    Faraz Coin Parser V35
+    Faraz Coin Parser V36
 
     Extract:
     - coin_emami
     - coin_bahar
     - coin_bubble
 
-    Supports:
-    - Next.js self.__next_f payload
-    - rows
+    Sources:
+    - rows array
+    - next_f payload
     - Persian names
     - English symbols
-    - payload debug
     """
 
     def parse(
@@ -26,7 +25,7 @@ class CoinParser:
         source: str = "market"
     ) -> Dict[str, Any]:
 
-        print("######## COIN PARSER V35 DEBUG ########")
+        print("######## COIN PARSER V36 DEBUG ########")
         print("SOURCE:", source)
 
         result = {}
@@ -54,6 +53,21 @@ class CoinParser:
                 )
 
 
+                if "سکه" in decoded or "coin" in decoded.lower():
+
+                    print(
+                        "######## COIN CONTEXT ########"
+                    )
+
+                    index = decoded.find("سکه")
+
+                    if index != -1:
+
+                        print(
+                            decoded[index:index+500]
+                        )
+
+
                 rows = self.extract_rows_array(
                     decoded
                 )
@@ -72,7 +86,7 @@ class CoinParser:
                     )
 
 
-                self.extract_from_payload(
+                self.extract_payload(
                     decoded,
                     result
                 )
@@ -119,14 +133,16 @@ class CoinParser:
                 key
             )
 
+
             if start == -1:
                 return []
 
 
             start = text.find(
-                "[",
+                '[',
                 start
             )
+
 
             if start == -1:
                 return []
@@ -134,19 +150,20 @@ class CoinParser:
 
             depth = 0
 
-
             for i in range(
                 start,
                 len(text)
             ):
 
-                if text[i] == "[":
+                if text[i] == '[':
+
                     depth += 1
 
 
-                elif text[i] == "]":
+                elif text[i] == ']':
 
                     depth -= 1
+
 
                     if depth == 0:
 
@@ -172,6 +189,7 @@ class CoinParser:
         rows,
         result: Dict
     ):
+
 
         for row in rows:
 
@@ -206,29 +224,26 @@ class CoinParser:
             )
 
 
-            if price is None:
-                continue
-
-
 
             if (
                 "emami" in symbol
                 or
                 "imam" in symbol
                 or
-                "sekke" in symbol
+                "sekkeemami" in symbol
+                or
+                "سکه امامی" in name
                 or
                 "امامی" in name
-                or
-                ("سکه" in name and "امام" in name)
             ):
 
                 result[
                     "coin_emami"
                 ] = price
 
+
                 print(
-                    "COIN EMAMI FOUND:",
+                    "COIN EMAMI FOUND ROW:",
                     price
                 )
 
@@ -239,142 +254,116 @@ class CoinParser:
                 or
                 "azadi" in symbol
                 or
-                "بهار" in name
+                "sekebahar" in symbol
                 or
-                "آزادی" in name
+                "سکه بهار" in name
+                or
+                "بهار" in name
             ):
 
                 result[
                     "coin_bahar"
                 ] = price
 
+
                 print(
-                    "COIN BAHAR FOUND:",
+                    "COIN BAHAR FOUND ROW:",
                     price
                 )
 
 
 
-    def extract_from_payload(
+    def extract_payload(
         self,
         text: str,
         result: Dict
     ):
 
-        try:
 
-            if "سکه" in text:
+        patterns_emami = [
 
-                index = text.find(
-                    "سکه"
+            r'سکه.{0,100}?امامی.{0,300}?(?:lastPrice|price)["\':, ]+([0-9,.]+)',
+
+            r'emami.{0,300}?(?:lastPrice|price)["\':, ]+([0-9,.]+)',
+
+            r'imam.{0,300}?(?:lastPrice|price)["\':, ]+([0-9,.]+)'
+
+        ]
+
+
+        patterns_bahar = [
+
+            r'سکه.{0,100}?بهار.{0,300}?(?:lastPrice|price)["\':, ]+([0-9,.]+)',
+
+            r'bahar.{0,300}?(?:lastPrice|price)["\':, ]+([0-9,.]+)',
+
+            r'azadi.{0,300}?(?:lastPrice|price)["\':, ]+([0-9,.]+)'
+
+        ]
+
+
+
+        if result.get(
+            "coin_emami"
+        ) is None:
+
+
+            for pattern in patterns_emami:
+
+                match = re.search(
+                    pattern,
+                    text,
+                    re.IGNORECASE
                 )
 
-                print(
-                    "######## COIN CONTEXT ########"
-                )
 
-                print(
-                    text[index:index+800]
-                )
+                if match:
 
-                print(
-                    "##############################"
-                )
-
-
-
-            if result.get(
-                "coin_emami"
-            ) is None:
-
-
-                patterns = [
-
-                    r'سکه.{0,500}?امامی.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)',
-
-                    r'امامی.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)',
-
-                    r'emami.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)',
-
-                    r'imam.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)'
-
-                ]
-
-
-                for pattern in patterns:
-
-                    match = re.search(
-                        pattern,
-                        text,
-                        re.IGNORECASE
+                    result[
+                        "coin_emami"
+                    ] = self.clean(
+                        match.group(1)
                     )
 
-                    if match:
 
-                        result[
-                            "coin_emami"
-                        ] = self.clean(
-                            match.group(1)
-                        )
-
-                        print(
-                            "EMAMI PAYLOAD FOUND:",
-                            result["coin_emami"]
-                        )
-
-                        break
-
-
-
-            if result.get(
-                "coin_bahar"
-            ) is None:
-
-
-                patterns = [
-
-                    r'سکه.{0,500}?بهار.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)',
-
-                    r'بهار.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)',
-
-                    r'bahar.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)',
-
-                    r'azadi.{0,500}?(?:lastPrice|price|value).{0,50}?([0-9,.]+)'
-
-                ]
-
-
-                for pattern in patterns:
-
-                    match = re.search(
-                        pattern,
-                        text,
-                        re.IGNORECASE
+                    print(
+                        "COIN EMAMI FOUND PAYLOAD:",
+                        result["coin_emami"]
                     )
 
-                    if match:
-
-                        result[
-                            "coin_bahar"
-                        ] = self.clean(
-                            match.group(1)
-                        )
-
-                        print(
-                            "BAHAR PAYLOAD FOUND:",
-                            result["coin_bahar"]
-                        )
-
-                        break
+                    break
 
 
 
-        except Exception as e:
+        if result.get(
+            "coin_bahar"
+        ) is None:
 
-            print(
-                "PAYLOAD ERROR:",
-                e
-            )
+
+            for pattern in patterns_bahar:
+
+                match = re.search(
+                    pattern,
+                    text,
+                    re.IGNORECASE
+                )
+
+
+                if match:
+
+                    result[
+                        "coin_bahar"
+                    ] = self.clean(
+                        match.group(1)
+                    )
+
+
+                    print(
+                        "COIN BAHAR FOUND PAYLOAD:",
+                        result["coin_bahar"]
+                    )
+
+                    break
 
 
 
@@ -395,38 +384,28 @@ class CoinParser:
 
         if coin and mesghal:
 
-            try:
-
-                theoretical = (
-                    mesghal *
-                    0.235
-                )
+            theoretical = mesghal * 0.235
 
 
-                result[
-                    "coin_bubble"
-                ] = round(
-                    (
-                        (coin - theoretical)
-                        /
-                        theoretical
-                    ) * 100,
-                    2
-                )
+            bubble = (
+                (coin - theoretical)
+                /
+                theoretical
+            ) * 100
 
 
-                print(
-                    "COIN BUBBLE:",
-                    result["coin_bubble"]
-                )
+            result[
+                "coin_bubble"
+            ] = round(
+                bubble,
+                2
+            )
 
 
-            except Exception as e:
-
-                print(
-                    "BUBBLE ERROR:",
-                    e
-                )
+            print(
+                "COIN BUBBLE:",
+                result["coin_bubble"]
+            )
 
 
 
@@ -438,6 +417,7 @@ class CoinParser:
         try:
 
             if value is None:
+
                 return None
 
 
