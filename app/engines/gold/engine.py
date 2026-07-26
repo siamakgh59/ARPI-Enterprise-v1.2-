@@ -4,26 +4,30 @@ from typing import Dict, Any
 from .scoring_engine import GoldScoringEngine
 
 
+
 class GoldEngine:
     """
     ARPI Gold Intelligence Engine
 
     Sprint 3.1
-    Dynamic Gold Scoring Integration
+    Dynamic Gold Scoring Engine
 
     Responsibilities:
-    - Data quality awareness
-    - Gold scoring orchestration
-    - Signal generation
-    - Confidence estimation
+    - Receive normalized gold data
+    - Validate input availability
+    - Run dynamic scoring model
+    - Generate signal
+    - Calculate confidence
     """
+
 
     VERSION = "3.1.0"
 
 
+
     def __init__(self):
 
-        self.scorer = GoldScoringEngine()
+        self.scoring_engine = GoldScoringEngine()
 
 
 
@@ -32,17 +36,22 @@ class GoldEngine:
         data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Analyze normalized gold data.
+        Analyze Gold Market Data
         """
 
-        # Convert Pydantic Model to Dictionary
-        # Required for GoldData input from FastAPI
+        # ---------------------------------
+        # Convert Pydantic Model to Dict
+        # ---------------------------------
 
         if hasattr(data, "model_dump"):
 
             data = data.model_dump()
 
 
+
+        # ---------------------------------
+        # Required Inputs
+        # ---------------------------------
 
         total_inputs = [
 
@@ -105,9 +114,9 @@ class GoldEngine:
 
 
 
-        # -------------------------
+        # ---------------------------------
         # Data Quality
-        # -------------------------
+        # ---------------------------------
 
         if available_count == total_count:
 
@@ -125,38 +134,40 @@ class GoldEngine:
 
 
 
-        # -------------------------
+        # ---------------------------------
         # Dynamic Gold Scoring
-        # -------------------------
+        # ---------------------------------
 
-        scoring_result = self.scorer.analyze(
-            data
+        score_result = (
+            self.scoring_engine.analyze(
+                data
+            )
         )
 
 
 
-        gold_score = scoring_result.get(
+        gold_score = score_result.get(
             "gold_score",
             50
         )
 
 
-        drivers = scoring_result.get(
+        drivers = score_result.get(
             "drivers",
             []
         )
 
 
-        risks = scoring_result.get(
+        risks = score_result.get(
             "risks",
             []
         )
 
 
 
-        # -------------------------
-        # Signal Logic
-        # -------------------------
+        # ---------------------------------
+        # Trend & Signal
+        # ---------------------------------
 
         if gold_score >= 80:
 
@@ -187,9 +198,9 @@ class GoldEngine:
 
 
 
-        # -------------------------
+        # ---------------------------------
         # Confidence
-        # -------------------------
+        # ---------------------------------
 
         confidence = int(
             (
@@ -201,7 +212,6 @@ class GoldEngine:
         )
 
 
-
         confidence = min(
             95,
             max(
@@ -209,7 +219,6 @@ class GoldEngine:
                 confidence
             )
         )
-
 
 
         if data_quality == "LOW":
@@ -229,7 +238,12 @@ class GoldEngine:
 
 
 
+        # ---------------------------------
+        # Final Report
+        # ---------------------------------
+
         return {
+
 
             "engine":
 
