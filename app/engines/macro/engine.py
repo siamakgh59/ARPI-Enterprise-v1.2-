@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from .models import MacroData, MacroReport
 from .calculator import MacroRiskCalculator
 from .validator import MacroValidator
@@ -5,7 +7,18 @@ from .validator import MacroValidator
 
 class MacroEngine:
     """
-    Core Macro Intelligence Engine v1.2
+    ARPI Macro Intelligence Engine
+
+    Pipeline:
+
+    Provider
+        |
+    Validator
+        |
+    Calculator
+        |
+    Intelligence Report
+
     """
 
     VERSION = "1.2.0"
@@ -18,21 +31,27 @@ class MacroEngine:
         self.validator = MacroValidator()
 
 
+
     def analyze(
         self,
         data: MacroData
     ) -> MacroReport:
 
+
         factors = data.model_dump()
 
 
-        validation = self.validator.validate(
-            factors
+        validation = (
+            self.validator.validate(
+                factors
+            )
         )
 
 
-        result = self.calculator.calculate(
-            validation["validated_data"]
+        result = (
+            self.calculator.calculate(
+                validation["validated_data"]
+            )
         )
 
 
@@ -42,23 +61,62 @@ class MacroEngine:
 
             version=self.VERSION,
 
-            macro_score=result["macro_score"],
+            macro_score=result.get(
+                "macro_score",
+                0
+            ),
 
-            macro_risk=result["macro_risk"],
+            macro_risk=result.get(
+                "macro_risk",
+                0
+            ),
 
-            trend=result["trend"],
+            trend=result.get(
+                "trend",
+                "UNKNOWN"
+            ),
 
-            confidence=result["confidence"],
+            confidence=result.get(
+                "confidence",
+                0
+            ),
 
-            drivers=result["drivers"],
 
-            data_quality=validation["data_quality"],
+            drivers=result.get(
+                "drivers",
+                []
+            ),
 
-            available_inputs=validation["available_inputs"],
 
-            missing_inputs=validation["missing_inputs"],
+            data_quality=validation.get(
+                "data_quality",
+                "UNKNOWN"
+            ),
+
+
+            available_inputs=validation.get(
+                "available_inputs",
+                0
+            ),
+
+
+            missing_inputs=validation.get(
+                "missing_inputs",
+                []
+            ),
+
 
             metadata={
-                "warnings": validation["warnings"]
-            }
+
+                "warnings":
+                    validation.get(
+                        "warnings",
+                        []
+                    )
+
+            },
+
+
+            timestamp=datetime.utcnow()
+
         )
