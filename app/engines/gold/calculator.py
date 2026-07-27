@@ -183,7 +183,7 @@ class GoldCalculator:
 
 
                     theoretical_price = (
-                        mesghal * 0.235
+                        mesghal * 0.0325
                     )
 
 
