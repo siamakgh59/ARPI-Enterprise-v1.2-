@@ -3,7 +3,7 @@ from typing import Dict, List
 
 class GoldCalculator:
     """
-    ARPI Gold Intelligence Calculator v3.1
+    ARPI Gold Intelligence Calculator v3.2
 
     Responsible for:
     - Gold factor analysis
@@ -11,10 +11,11 @@ class GoldCalculator:
     - Trend generation
     - Signal generation
     - Confidence estimation
+    - Coin bubble normalization
     """
 
 
-    VERSION = "3.1.0"
+    VERSION = "3.2.0"
 
 
 
@@ -49,8 +50,6 @@ class GoldCalculator:
                 "Gold18 price available"
             )
 
-
-
         else:
 
             risks.append(
@@ -76,7 +75,6 @@ class GoldCalculator:
                 "Mesghal data available"
             )
 
-
         else:
 
             risks.append(
@@ -96,13 +94,11 @@ class GoldCalculator:
 
         if usd is not None:
 
-
             score += 10
 
             drivers.append(
                 "USD market support"
             )
-
 
         else:
 
@@ -161,7 +157,7 @@ class GoldCalculator:
 
 
         # --------------------------------
-        # Coin Bubble
+        # Coin Bubble Normalization
         # --------------------------------
 
         bubble = factors.get(
@@ -169,10 +165,55 @@ class GoldCalculator:
         )
 
 
+        coin = factors.get(
+            "coin_emami"
+        )
+
+
         if bubble is not None:
 
 
-            if bubble > 20:
+            # Faraz ممکن است مقدار ریالی بدهد
+            # تبدیل به درصد واقعی
+
+            if bubble > 1000:
+
+
+                if coin and mesghal:
+
+
+                    theoretical_price = (
+                        mesghal * 0.235
+                    )
+
+
+                    bubble = (
+                        (
+                            coin
+                            -
+                            theoretical_price
+                        )
+                        /
+                        theoretical_price
+                    ) * 100
+
+
+                    bubble = round(
+                        bubble,
+                        2
+                    )
+
+
+                    print(
+                        "NORMALIZED COIN BUBBLE %",
+                        bubble
+                    )
+
+
+
+            # تحلیل درصد حباب
+
+            if bubble >= 10:
 
                 score -= 10
 
@@ -181,9 +222,25 @@ class GoldCalculator:
                 )
 
 
+            elif bubble >= 5:
+
+                score -= 5
+
+                risks.append(
+                    "Medium coin bubble risk"
+                )
+
+
+            else:
+
+                drivers.append(
+                    "Controlled coin bubble"
+                )
+
+
 
         # --------------------------------
-        # Global Factors
+        # Global Gold (XAU/USD)
         # --------------------------------
 
         xau = factors.get(
@@ -213,6 +270,10 @@ class GoldCalculator:
 
 
 
+        # --------------------------------
+        # Dollar Index
+        # --------------------------------
+
         dxy = factors.get(
             "dxy"
         )
@@ -240,6 +301,10 @@ class GoldCalculator:
 
 
 
+        # --------------------------------
+        # US10Y Yield
+        # --------------------------------
+
         yield10 = factors.get(
             "us10y_yield"
         )
@@ -259,7 +324,7 @@ class GoldCalculator:
 
 
         # --------------------------------
-        # Normalize Score
+        # Normalize
         # --------------------------------
 
         score = max(
@@ -321,8 +386,10 @@ class GoldCalculator:
         # Confidence
         # --------------------------------
 
-        confidence = 40 + (
-            len(drivers) * 5
+        confidence = (
+            40
+            +
+            (len(drivers) * 5)
         )
 
 
@@ -341,26 +408,20 @@ class GoldCalculator:
                     2
                 ),
 
-
             "trend":
                 trend,
-
 
             "signal":
                 signal,
 
-
             "confidence":
                 confidence,
-
 
             "drivers":
                 drivers,
 
-
             "risks":
                 risks,
-
 
             "calculator_version":
                 self.VERSION
