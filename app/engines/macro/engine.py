@@ -1,3 +1,8 @@
+from .models import MacroData, MacroReport
+from .calculator import MacroRiskCalculator
+from .validator import MacroValidator
+
+
 class MacroEngine:
     """
     Core Macro Intelligence Engine v1.2
@@ -17,7 +22,6 @@ class MacroEngine:
         self,
         data: MacroData
     ) -> MacroReport:
-
 
         factors = data.model_dump()
 
@@ -55,15 +59,6 @@ class MacroEngine:
             missing_inputs=validation["missing_inputs"],
 
             metadata={
-
-                "warnings":
-                    validation["warnings"],
-
-                "source":
-                    "Macro Intelligence Engine",
-
-                "factor_count":
-                    len(validation["validated_data"])
-
+                "warnings": validation["warnings"]
             }
         )
