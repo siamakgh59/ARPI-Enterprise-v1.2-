@@ -5,11 +5,10 @@ from .validator import GoldValidator
 from .calculator import GoldCalculator
 
 
-
 class GoldIntelligenceEngine:
 
     """
-    ARPI Gold Intelligence Engine v3.1
+    ARPI Gold Intelligence Engine v3.2
 
     Pipeline:
 
@@ -25,9 +24,7 @@ class GoldIntelligenceEngine:
 
     """
 
-
-    VERSION = "3.1.0"
-
+    VERSION = "3.2.0"
 
 
     def __init__(self):
@@ -61,6 +58,22 @@ class GoldIntelligenceEngine:
                 validated_data
             )
         )
+
+
+        print(
+            "######## ACTIVE GOLD CALCULATOR ########"
+        )
+
+        print(
+            result.get(
+                "calculator_version"
+            )
+        )
+
+        print(
+            "########################################"
+        )
+
 
 
         return {
