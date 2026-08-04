@@ -3,26 +3,19 @@ from typing import Dict, List
 
 class GoldCalculator:
     """
-    ARPI Gold Intelligence Calculator v3.4
+    ARPI Gold Intelligence Calculator v4.0
 
     Responsibilities:
-
     - Gold factor analysis
-    - Dynamic weighted scoring
+    - Dynamic scoring
     - Trend generation
     - Signal generation
+    - Market regime detection
     - Confidence estimation
 
-    Input:
-        Normalized Gold Data
-
-    Output:
-        Intelligence Score
     """
 
-
-    VERSION = "3.4.0"
-
+    VERSION = "4.0.0"
 
 
     def calculate(
@@ -33,22 +26,19 @@ class GoldCalculator:
 
         score = 50
 
-
         drivers: List[str] = []
 
         risks: List[str] = []
 
 
 
-        # =================================================
-        # Local Gold Market
-        # =================================================
-
+        # -----------------------------
+        # Gold18 Price
+        # -----------------------------
 
         gold18 = factors.get(
             "gold18_price"
         )
-
 
         if gold18 is not None:
 
@@ -66,10 +56,13 @@ class GoldCalculator:
 
 
 
+        # -----------------------------
+        # Mesghal Price
+        # -----------------------------
+
         mesghal = factors.get(
             "mesghal_price"
         )
-
 
         if mesghal is not None:
 
@@ -87,15 +80,13 @@ class GoldCalculator:
 
 
 
-        # =================================================
+        # -----------------------------
         # USD Market
-        # =================================================
-
+        # -----------------------------
 
         usd = factors.get(
             "usd_free_rate"
         )
-
 
         if usd is not None:
 
@@ -113,47 +104,49 @@ class GoldCalculator:
 
 
 
+        # -----------------------------
+        # USD Momentum
+        # -----------------------------
+
         usd_change = factors.get(
             "usd_change"
         )
 
-
         if usd_change is not None:
 
 
-            if usd_change > 1:
+            if usd_change > 0:
 
-                score += 3
+                score += 5
 
                 drivers.append(
                     "Positive USD momentum"
                 )
 
 
-            elif usd_change < -1:
+            elif usd_change < 0:
 
-                score -= 3
+                score -= 5
 
                 risks.append(
-                    "USD weakness"
+                    "Negative USD momentum"
                 )
 
 
 
-        # =================================================
+        # -----------------------------
         # Gold Momentum
-        # =================================================
+        # -----------------------------
 
-
-        gold_change = factors.get(
+        change = factors.get(
             "gold_daily_change"
         )
 
 
-        if gold_change is not None:
+        if change is not None:
 
 
-            if gold_change > 0:
+            if change > 0:
 
                 score += 10
 
@@ -162,7 +155,7 @@ class GoldCalculator:
                 )
 
 
-            elif gold_change < 0:
+            elif change < 0:
 
                 score -= 10
 
@@ -172,10 +165,9 @@ class GoldCalculator:
 
 
 
-        # =================================================
+        # -----------------------------
         # Volume
-        # =================================================
-
+        # -----------------------------
 
         volume = factors.get(
             "volume"
@@ -184,65 +176,39 @@ class GoldCalculator:
 
         if volume is not None:
 
-            score += 2
-
             drivers.append(
                 "Market volume available"
             )
 
 
 
-        # =================================================
+        # -----------------------------
         # Coin Bubble
-        # =================================================
-
+        # -----------------------------
 
         bubble = factors.get(
             "coin_bubble"
         )
 
 
-        coin = factors.get(
-            "coin_emami"
-        )
+        if bubble is not None:
 
 
-        bubble_percent = None
+            # Bubble value is percent normalized
+            # by provider layer
 
-
-
-        if (
-            bubble is not None
-            and
-            coin is not None
-            and
-            coin > 0
-        ):
-
-            bubble_percent = (
-                bubble
-                /
-                coin
-            ) * 100
-
-
-
-            if bubble_percent >= 12:
-
+            if bubble >= 10:
 
                 score -= 10
-
 
                 risks.append(
                     "High coin bubble risk"
                 )
 
 
-            elif bubble_percent >= 7:
-
+            elif bubble >= 5:
 
                 score -= 5
-
 
                 risks.append(
                     "Medium coin bubble risk"
@@ -251,17 +217,15 @@ class GoldCalculator:
 
             else:
 
-
                 drivers.append(
                     "Controlled coin bubble"
                 )
 
 
 
-        # =================================================
-        # Global Gold Market
-        # =================================================
-
+        # -----------------------------
+        # Global Gold Price
+        # -----------------------------
 
         xau = factors.get(
             "xau_usd"
@@ -273,9 +237,7 @@ class GoldCalculator:
 
             if xau >= 3000:
 
-
                 score += 10
-
 
                 drivers.append(
                     "Strong global gold price"
@@ -284,9 +246,7 @@ class GoldCalculator:
 
             elif xau < 2500:
 
-
                 score -= 5
-
 
                 risks.append(
                     "Weak global gold price"
@@ -294,10 +254,9 @@ class GoldCalculator:
 
 
 
-        # =================================================
+        # -----------------------------
         # Dollar Index
-        # =================================================
-
+        # -----------------------------
 
         dxy = factors.get(
             "dxy"
@@ -309,9 +268,7 @@ class GoldCalculator:
 
             if dxy >= 105:
 
-
                 score -= 5
-
 
                 risks.append(
                     "Strong dollar pressure"
@@ -320,9 +277,7 @@ class GoldCalculator:
 
             elif dxy <= 95:
 
-
                 score += 5
-
 
                 drivers.append(
                     "Weak dollar support"
@@ -330,24 +285,21 @@ class GoldCalculator:
 
 
 
-        # =================================================
+        # -----------------------------
         # US Treasury Yield
-        # =================================================
+        # -----------------------------
 
-
-        us10y = factors.get(
+        yield10 = factors.get(
             "us10y_yield"
         )
 
 
-        if us10y is not None:
+        if yield10 is not None:
 
 
-            if us10y >= 4.5:
-
+            if yield10 >= 4.5:
 
                 score -= 5
-
 
                 risks.append(
                     "High bond yield pressure"
@@ -355,10 +307,9 @@ class GoldCalculator:
 
 
 
-        # =================================================
+        # -----------------------------
         # Normalize Score
-        # =================================================
-
+        # -----------------------------
 
         score = max(
             0,
@@ -370,10 +321,9 @@ class GoldCalculator:
 
 
 
-        # =================================================
+        # -----------------------------
         # Trend
-        # =================================================
-
+        # -----------------------------
 
         if score >= 75:
 
@@ -396,10 +346,9 @@ class GoldCalculator:
 
 
 
-        # =================================================
+        # -----------------------------
         # Signal
-        # =================================================
-
+        # -----------------------------
 
         if score >= 70:
 
@@ -417,10 +366,45 @@ class GoldCalculator:
 
 
 
-        # =================================================
-        # Confidence
-        # =================================================
+        # -----------------------------
+        # Market Regime Detection
+        # -----------------------------
 
+        market_regime = "NORMAL"
+
+
+
+        if (
+            change is not None
+            and change < 0
+            and
+            yield10 is not None
+            and yield10 >= 4.5
+        ):
+
+            market_regime = "GOLD_STRESS"
+
+            drivers.append(
+                "Gold stress regime"
+            )
+
+
+
+        elif score >= 75:
+
+            market_regime = "GOLD_BULL"
+
+
+
+        elif score <= 35:
+
+            market_regime = "GOLD_BEAR"
+
+
+
+        # -----------------------------
+        # Confidence
+        # -----------------------------
 
         confidence = (
             40
@@ -438,7 +422,6 @@ class GoldCalculator:
 
         return {
 
-
             "gold_score":
                 round(
                     score,
@@ -452,6 +435,10 @@ class GoldCalculator:
 
             "signal":
                 signal,
+
+
+            "market_regime":
+                market_regime,
 
 
             "confidence":
