@@ -26,13 +26,14 @@ class GoldEngine:
 
     def __init__(self):
 
-        self.calculator = DynamicGoldScoringEngine()
+        self.scorer = DynamicGoldScoringEngine()
 
     # -------------------------------------------------
 
     def analyze(self, data: dict):
 
-        result = self.calculator.calculate(data)
+        result = self.c
+        scorer.calculate(data)
 
         # -----------------------------------------
         # Available Inputs
