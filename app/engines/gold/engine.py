@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from app.engines.gold.dynamic_engine import DynamicGoldScoringEngine
+from app.engines.gold.dynamic_scoring import DynamicGoldScoringEngine
 from app.engines.gold.models import GoldReport
 
 class GoldEngine:
