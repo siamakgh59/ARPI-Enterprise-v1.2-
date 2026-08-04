@@ -4,30 +4,28 @@ from typing import Dict
 
 class GoldNormalizer:
     """
-    ARPI Gold Data Normalizer
+    ARPI Gold Data Normalizer v2
 
     Responsibility:
-    - Convert provider output
+    - Convert all providers output
       into Gold Engine schema
-    - Fill derived values
-    - Preserve missing data safely
+    - Preserve global market data
+    - Preserve missing values safely
     """
 
 
     MESGHAL_TO_GRAM18 = 4.0715
 
 
+
     def normalize(
         self,
         raw_data: Dict
     ) -> Dict:
-        """
-        Normalize Faraz/provider data
-        into ARPI Gold Engine format.
-        """
 
 
         data = raw_data or {}
+
 
 
         mesghal_price = data.get(
@@ -40,10 +38,8 @@ class GoldNormalizer:
         )
 
 
-        #
-        # Derive 18K gold price
-        # if provider did not provide it
-        #
+
+        # Derive gold18 if missing
 
         if (
             gold18_price is None
@@ -66,12 +62,12 @@ class GoldNormalizer:
 
 
 
-        return {
+        normalized = {
 
 
-            # ======================
+            # =====================
             # Global Market
-            # ======================
+            # =====================
 
             "xau_usd":
                 data.get(
@@ -92,9 +88,9 @@ class GoldNormalizer:
 
 
 
-            # ======================
+            # =====================
             # Iran Market
-            # ======================
+            # =====================
 
             "usd_free_rate":
                 data.get(
@@ -108,14 +104,12 @@ class GoldNormalizer:
                 ),
 
 
-
             "gold18_price":
                 gold18_price,
 
 
             "mesghal_price":
                 mesghal_price,
-
 
 
             "coin_emami":
@@ -137,9 +131,9 @@ class GoldNormalizer:
 
 
 
-            # ======================
+            # =====================
             # Market Behavior
-            # ======================
+            # =====================
 
             "gold_daily_change":
                 data.get(
@@ -153,8 +147,25 @@ class GoldNormalizer:
                 ),
 
 
-
             "timestamp":
                 datetime.utcnow()
 
         }
+
+
+
+        print(
+            "######## NORMALIZER OUTPUT ########"
+        )
+
+        print(
+            normalized
+        )
+
+        print(
+            "###################################"
+        )
+
+
+
+        return normalized
