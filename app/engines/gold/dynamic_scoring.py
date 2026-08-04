@@ -4,7 +4,7 @@ from typing import Dict, List
 class DynamicGoldScoringEngine:
     """
     ============================================
-    ARPI Dynamic Gold Scoring Engine v1.0
+    ARPI Dynamic Gold Scoring Engine v1.1
     ============================================
 
     مسئولیت:
@@ -13,10 +13,18 @@ class DynamicGoldScoringEngine:
     - تولید Drivers
     - تولید Risks
     - تعیین Market Regime
-    - آماده برای توسعه AI Layer
+    - تولید Signal
+    - محاسبه Confidence پویا
+    - آماده توسعه AI Layer
+
+    Compatible With:
+    - Gold Engine v4.2+
+    - Fusion Engine
+    - Dashboard
+    ============================================
     """
 
-    VERSION = "1.0.0"
+    VERSION = "1.1.0"
 
 
     def __init__(self):
@@ -93,13 +101,25 @@ class DynamicGoldScoringEngine:
             )
 
 
-        if usd_change and usd_change > 0:
+        if usd_change is not None:
 
-            score += 5
 
-            drivers.append(
-                "Positive USD momentum"
-            )
+            if usd_change > 0:
+
+                score += 5
+
+                drivers.append(
+                    "Positive USD momentum"
+                )
+
+
+            elif usd_change < 0:
+
+                score -= 3
+
+                risks.append(
+                    "Negative USD momentum"
+                )
 
 
 
@@ -133,7 +153,8 @@ class DynamicGoldScoringEngine:
 
         if xau:
 
-            if xau > 4000:
+
+            if xau >= 4000:
 
                 score += 7
 
@@ -194,6 +215,7 @@ class DynamicGoldScoringEngine:
 
         if yield10:
 
+
             if yield10 > 4:
 
                 score -= 5
@@ -205,7 +227,7 @@ class DynamicGoldScoringEngine:
 
 
         # ==================================
-        # Coin Bubble
+        # Coin Bubble Intelligence
         # ==================================
 
         bubble = data.get(
@@ -213,7 +235,7 @@ class DynamicGoldScoringEngine:
         )
 
 
-        if bubble:
+        if bubble is not None:
 
 
             if bubble > 3:
@@ -225,7 +247,16 @@ class DynamicGoldScoringEngine:
                 )
 
 
-            elif bubble < 2:
+            elif bubble > 2:
+
+                score -= 4
+
+                risks.append(
+                    "Medium coin bubble risk"
+                )
+
+
+            else:
 
                 drivers.append(
                     "Controlled coin bubble"
@@ -234,7 +265,7 @@ class DynamicGoldScoringEngine:
 
 
         # ==================================
-        # Clamp Score
+        # Normalize Score
         # ==================================
 
         score = max(
@@ -251,9 +282,14 @@ class DynamicGoldScoringEngine:
         # Market Regime
         # ==================================
 
-        if score >= 80:
+        if score >= 85:
 
-            regime = "BULLISH"
+            regime = "GOLD_BULL"
+
+
+        elif score >= 70:
+
+            regime = "BALANCED_BULL"
 
 
         elif score <= 55:
@@ -263,7 +299,7 @@ class DynamicGoldScoringEngine:
 
         else:
 
-            regime = "BALANCED"
+            regime = "NEUTRAL"
 
 
 
@@ -275,9 +311,11 @@ class DynamicGoldScoringEngine:
 
             signal = "BUY"
 
+
         elif score <= 45:
 
             signal = "SELL"
+
 
         else:
 
@@ -285,18 +323,72 @@ class DynamicGoldScoringEngine:
 
 
 
+        # ==================================
+        # Dynamic Confidence
+        # ==================================
+
+        input_count = len(
+            [
+                key
+                for key, value in data.items()
+                if value is not None
+            ]
+        )
+
+
+        confidence = 70
+
+
+        if input_count >= 10:
+
+            confidence += 10
+
+
+        elif input_count >= 7:
+
+            confidence += 5
+
+
+
+        if len(risks) >= 3:
+
+            confidence -= 5
+
+
+
+        confidence = max(
+            50,
+            min(
+                95,
+                confidence
+            )
+        )
+
+
+
+        # ==================================
+        # Final Output
+        # ==================================
+
         return {
+
 
             "gold_score": score,
 
+
             "signal": signal,
+
 
             "market_regime": regime,
 
-            "confidence": 70,
+
+            "confidence": confidence,
+
 
             "drivers": drivers,
 
-            "risks": risks
+
+            "risks": risks,
+
 
         }
