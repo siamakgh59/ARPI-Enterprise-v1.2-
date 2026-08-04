@@ -8,7 +8,7 @@ from .calculator import GoldCalculator
 class GoldIntelligenceEngine:
 
     """
-    ARPI Gold Intelligence Engine v3.2
+    ARPI Gold Intelligence Engine v3.3
 
     Pipeline:
 
