@@ -5,10 +5,11 @@ from .validator import GoldValidator
 from .calculator import GoldCalculator
 
 
+
 class GoldIntelligenceEngine:
 
     """
-    ARPI Gold Intelligence Engine v3.3
+    ARPI Gold Intelligence Engine v3.4
 
     Pipeline:
 
@@ -18,13 +19,15 @@ class GoldIntelligenceEngine:
         |
     Validator
         |
-    Calculator
+    Calculator v3.4
         |
     Intelligence Report
 
     """
 
-    VERSION = "3.3.0"
+
+    VERSION = "3.4.0"
+
 
 
     def __init__(self):
@@ -41,6 +44,10 @@ class GoldIntelligenceEngine:
     ) -> Dict[str, Any]:
 
 
+        # -----------------------------
+        # Validation Layer
+        # -----------------------------
+
         validation = (
             self.validator.validate(
                 data
@@ -49,9 +56,16 @@ class GoldIntelligenceEngine:
 
 
         validated_data = (
-            validation["validated_data"]
+            validation[
+                "validated_data"
+            ]
         )
 
+
+
+        # -----------------------------
+        # Intelligence Calculation
+        # -----------------------------
 
         result = (
             self.calculator.calculate(
@@ -60,9 +74,11 @@ class GoldIntelligenceEngine:
         )
 
 
+
         print(
             "######## ACTIVE GOLD CALCULATOR ########"
         )
+
 
         print(
             result.get(
@@ -70,11 +86,16 @@ class GoldIntelligenceEngine:
             )
         )
 
+
         print(
             "########################################"
         )
 
 
+
+        # -----------------------------
+        # Final Intelligence Report
+        # -----------------------------
 
         return {
 
@@ -83,44 +104,73 @@ class GoldIntelligenceEngine:
                 "Gold Intelligence Engine",
 
 
+
             "version":
                 self.VERSION,
 
 
+
             "gold_score":
-                result["gold_score"],
+                result[
+                    "gold_score"
+                ],
+
 
 
             "trend":
-                result["trend"],
+                result[
+                    "trend"
+                ],
+
 
 
             "signal":
-                result["signal"],
+                result[
+                    "signal"
+                ],
+
 
 
             "confidence":
-                result["confidence"],
+                result[
+                    "confidence"
+                ],
+
 
 
             "drivers":
-                result["drivers"],
+                result[
+                    "drivers"
+                ],
+
 
 
             "risks":
-                result["risks"],
+                result[
+                    "risks"
+                ],
+
 
 
             "data_quality":
-                validation["data_quality"],
+                validation[
+                    "data_quality"
+                ],
+
 
 
             "available_inputs":
-                validation["available_inputs"],
+                validation[
+                    "available_inputs"
+                ],
+
 
 
             "missing_inputs":
-                validation["missing_inputs"],
+                validation[
+                    "missing_inputs"
+                ],
+
 
 
             "timestamp":
