@@ -6,15 +6,23 @@ class GoldCalculator:
     ARPI Gold Intelligence Calculator v3.4
 
     Responsibilities:
+
     - Gold factor analysis
-    - Weighted scoring
+    - Dynamic weighted scoring
     - Trend generation
     - Signal generation
     - Confidence estimation
-    - Coin bubble normalization
+
+    Input:
+        Normalized Gold Data
+
+    Output:
+        Intelligence Score
     """
 
+
     VERSION = "3.4.0"
+
 
 
     def calculate(
@@ -25,19 +33,21 @@ class GoldCalculator:
 
         score = 50
 
+
         drivers: List[str] = []
 
         risks: List[str] = []
 
-        bubble_status = "UNKNOWN"
 
 
+        # =================================================
+        # Local Gold Market
+        # =================================================
 
-        # -----------------------------
-        # Gold 18 Price
-        # -----------------------------
 
-        gold18 = factors.get("gold18_price")
+        gold18 = factors.get(
+            "gold18_price"
+        )
 
 
         if gold18 is not None:
@@ -56,11 +66,9 @@ class GoldCalculator:
 
 
 
-        # -----------------------------
-        # Mesghal Price
-        # -----------------------------
-
-        mesghal = factors.get("mesghal_price")
+        mesghal = factors.get(
+            "mesghal_price"
+        )
 
 
         if mesghal is not None:
@@ -79,11 +87,14 @@ class GoldCalculator:
 
 
 
-        # -----------------------------
+        # =================================================
         # USD Market
-        # -----------------------------
+        # =================================================
 
-        usd = factors.get("usd_free_rate")
+
+        usd = factors.get(
+            "usd_free_rate"
+        )
 
 
         if usd is not None:
@@ -102,18 +113,47 @@ class GoldCalculator:
 
 
 
-        # -----------------------------
-        # Gold Momentum
-        # -----------------------------
+        usd_change = factors.get(
+            "usd_change"
+        )
 
-        change = factors.get(
+
+        if usd_change is not None:
+
+
+            if usd_change > 1:
+
+                score += 3
+
+                drivers.append(
+                    "Positive USD momentum"
+                )
+
+
+            elif usd_change < -1:
+
+                score -= 3
+
+                risks.append(
+                    "USD weakness"
+                )
+
+
+
+        # =================================================
+        # Gold Momentum
+        # =================================================
+
+
+        gold_change = factors.get(
             "gold_daily_change"
         )
 
 
-        if change is not None:
+        if gold_change is not None:
 
-            if change > 0:
+
+            if gold_change > 0:
 
                 score += 10
 
@@ -122,7 +162,7 @@ class GoldCalculator:
                 )
 
 
-            elif change < 0:
+            elif gold_change < 0:
 
                 score -= 10
 
@@ -132,9 +172,10 @@ class GoldCalculator:
 
 
 
-        # -----------------------------
+        # =================================================
         # Volume
-        # -----------------------------
+        # =================================================
+
 
         volume = factors.get(
             "volume"
@@ -143,15 +184,18 @@ class GoldCalculator:
 
         if volume is not None:
 
+            score += 2
+
             drivers.append(
                 "Market volume available"
             )
 
 
 
-        # -----------------------------
-        # Coin Bubble Analysis
-        # -----------------------------
+        # =================================================
+        # Coin Bubble
+        # =================================================
+
 
         bubble = factors.get(
             "coin_bubble"
@@ -163,98 +207,42 @@ class GoldCalculator:
         )
 
 
-        mesghal_price = factors.get(
-            "mesghal_price"
-        )
-
-
-        normalized_bubble = None
+        bubble_percent = None
 
 
 
-        if bubble is not None:
+        if (
+            bubble is not None
+            and
+            coin is not None
+            and
+            coin > 0
+        ):
 
-
-            # Provider may send raw IRR value
-            # Convert to percentage
-
-
-            if bubble > 100:
-
-
-                try:
-
-                    if coin and mesghal_price:
-
-
-                        theoretical_price = (
-                            mesghal_price * 4.0715
-                        )
-
-
-                        normalized_bubble = (
-
-                            (
-                                coin
-                                -
-                                theoretical_price
-                            )
-
-                            /
-
-                            theoretical_price
-
-                        ) * 100
+            bubble_percent = (
+                bubble
+                /
+                coin
+            ) * 100
 
 
 
-                except Exception:
+            if bubble_percent >= 12:
 
-                    normalized_bubble = None
-
-
-            else:
-
-                normalized_bubble = bubble
-
-
-
-        if normalized_bubble is not None:
-
-
-            normalized_bubble = round(
-                normalized_bubble,
-                2
-            )
-
-
-            if normalized_bubble >= 15:
 
                 score -= 10
 
-                bubble_status = "EXTREME"
-
-                risks.append(
-                    "Extreme coin bubble risk"
-                )
-
-
-            elif normalized_bubble >= 7:
-
-                score -= 7
-
-                bubble_status = "HIGH"
 
                 risks.append(
                     "High coin bubble risk"
                 )
 
 
-            elif normalized_bubble >= 3:
+            elif bubble_percent >= 7:
 
-                score -= 3
 
-                bubble_status = "WARNING"
+                score -= 5
+
 
                 risks.append(
                     "Medium coin bubble risk"
@@ -263,7 +251,6 @@ class GoldCalculator:
 
             else:
 
-                bubble_status = "NORMAL"
 
                 drivers.append(
                     "Controlled coin bubble"
@@ -271,9 +258,10 @@ class GoldCalculator:
 
 
 
-        # -----------------------------
-        # Global Gold Price
-        # -----------------------------
+        # =================================================
+        # Global Gold Market
+        # =================================================
+
 
         xau = factors.get(
             "xau_usd"
@@ -285,7 +273,9 @@ class GoldCalculator:
 
             if xau >= 3000:
 
+
                 score += 10
+
 
                 drivers.append(
                     "Strong global gold price"
@@ -294,7 +284,9 @@ class GoldCalculator:
 
             elif xau < 2500:
 
+
                 score -= 5
+
 
                 risks.append(
                     "Weak global gold price"
@@ -302,9 +294,10 @@ class GoldCalculator:
 
 
 
-        # -----------------------------
+        # =================================================
         # Dollar Index
-        # -----------------------------
+        # =================================================
+
 
         dxy = factors.get(
             "dxy"
@@ -316,7 +309,9 @@ class GoldCalculator:
 
             if dxy >= 105:
 
+
                 score -= 5
+
 
                 risks.append(
                     "Strong dollar pressure"
@@ -325,7 +320,9 @@ class GoldCalculator:
 
             elif dxy <= 95:
 
+
                 score += 5
+
 
                 drivers.append(
                     "Weak dollar support"
@@ -333,21 +330,24 @@ class GoldCalculator:
 
 
 
-        # -----------------------------
+        # =================================================
         # US Treasury Yield
-        # -----------------------------
+        # =================================================
 
-        yield10 = factors.get(
+
+        us10y = factors.get(
             "us10y_yield"
         )
 
 
-        if yield10 is not None:
+        if us10y is not None:
 
 
-            if yield10 >= 4.5:
+            if us10y >= 4.5:
+
 
                 score -= 5
+
 
                 risks.append(
                     "High bond yield pressure"
@@ -355,9 +355,10 @@ class GoldCalculator:
 
 
 
-        # -----------------------------
+        # =================================================
         # Normalize Score
-        # -----------------------------
+        # =================================================
+
 
         score = max(
             0,
@@ -369,9 +370,10 @@ class GoldCalculator:
 
 
 
-        # -----------------------------
+        # =================================================
         # Trend
-        # -----------------------------
+        # =================================================
+
 
         if score >= 75:
 
@@ -394,9 +396,10 @@ class GoldCalculator:
 
 
 
-        # -----------------------------
+        # =================================================
         # Signal
-        # -----------------------------
+        # =================================================
+
 
         if score >= 70:
 
@@ -414,14 +417,15 @@ class GoldCalculator:
 
 
 
-        # -----------------------------
+        # =================================================
         # Confidence
-        # -----------------------------
+        # =================================================
+
 
         confidence = (
             40
             +
-            (len(drivers) * 5)
+            len(drivers) * 5
         )
 
 
@@ -434,29 +438,33 @@ class GoldCalculator:
 
         return {
 
+
             "gold_score":
                 round(
                     score,
                     2
                 ),
 
+
             "trend":
                 trend,
+
 
             "signal":
                 signal,
 
+
             "confidence":
                 confidence,
+
 
             "drivers":
                 drivers,
 
+
             "risks":
                 risks,
 
-            "bubble_status":
-                bubble_status,
 
             "calculator_version":
                 self.VERSION
