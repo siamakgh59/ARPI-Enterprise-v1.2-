@@ -4,17 +4,25 @@ from typing import Dict
 
 class GoldNormalizer:
     """
-    ARPI Gold Data Normalizer v2
+    ARPI Gold Data Normalizer v4.1
 
-    Responsibility:
-    - Convert all providers output
+    Responsibilities:
+    - Convert providers output
       into Gold Engine schema
     - Preserve global market data
     - Preserve missing values safely
+    - Calculate derived intelligence indicators
+
+    Added:
+    - coin_bubble_percent
+      for normalized bubble risk analysis
     """
 
 
     MESGHAL_TO_GRAM18 = 4.0715
+
+
+    VERSION = "4.1.0"
 
 
 
@@ -39,7 +47,9 @@ class GoldNormalizer:
 
 
 
-        # Derive gold18 if missing
+        # --------------------------------
+        # Derive Gold18 price if missing
+        # --------------------------------
 
         if (
             gold18_price is None
@@ -59,6 +69,55 @@ class GoldNormalizer:
             except Exception:
 
                 gold18_price = None
+
+
+
+        coin_emami = data.get(
+            "coin_emami"
+        )
+
+
+        coin_bubble = data.get(
+            "coin_bubble"
+        )
+
+
+
+        # --------------------------------
+        # Smart Coin Bubble Calculation
+        # --------------------------------
+
+        coin_bubble_percent = None
+
+
+        if (
+            coin_bubble is not None
+            and
+            coin_emami is not None
+            and
+            coin_emami > 0
+        ):
+
+            try:
+
+                coin_bubble_percent = round(
+
+                    (
+                        coin_bubble
+                        /
+                        coin_emami
+                    )
+                    *
+                    100,
+
+                    2
+
+                )
+
+
+            except Exception:
+
+                coin_bubble_percent = None
 
 
 
@@ -113,9 +172,7 @@ class GoldNormalizer:
 
 
             "coin_emami":
-                data.get(
-                    "coin_emami"
-                ),
+                coin_emami,
 
 
             "coin_bahar":
@@ -125,9 +182,11 @@ class GoldNormalizer:
 
 
             "coin_bubble":
-                data.get(
-                    "coin_bubble"
-                ),
+                coin_bubble,
+
+
+            "coin_bubble_percent":
+                coin_bubble_percent,
 
 
 
@@ -155,7 +214,7 @@ class GoldNormalizer:
 
 
         print(
-            "######## NORMALIZER OUTPUT ########"
+            "######## NORMALIZER v4.1 OUTPUT ########"
         )
 
         print(
@@ -163,7 +222,7 @@ class GoldNormalizer:
         )
 
         print(
-            "###################################"
+            "########################################"
         )
 
 
