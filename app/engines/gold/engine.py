@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from app.engines.gold.calculator import GoldCalculator
+from app.engines.gold.dynamic_scoring import DynamicGoldScoringEngine
 from app.engines.gold.models import GoldReport
 
 class GoldEngine:
@@ -26,7 +26,7 @@ class GoldEngine:
 
     def __init__(self):
 
-        self.calculator = GoldCalculator()
+        self.calculator = DynamicGoldScoringEngine()
 
     # -------------------------------------------------
 
