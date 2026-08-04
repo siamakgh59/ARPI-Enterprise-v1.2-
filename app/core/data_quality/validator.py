@@ -4,11 +4,6 @@ from typing import Dict, List
 class DataQualityValidator:
     """
     ARPI Universal Data Quality Validator
-
-    Used by:
-    - Macro Intelligence Engine
-    - Gold Intelligence Engine
-    - Risk Intelligence Engine
     """
 
 
@@ -19,21 +14,25 @@ class DataQualityValidator:
     ) -> Dict:
 
 
+        validated_data = data.copy()
+
         missing_inputs = []
+
+        invalid_inputs = []
+
+        warnings = []
+
 
         available_inputs = 0
 
 
         for field in required_fields:
 
-            value = data.get(field)
-
+            value = validated_data.get(field)
 
             if value is None:
 
-                missing_inputs.append(
-                    field
-                )
+                missing_inputs.append(field)
 
             else:
 
@@ -41,66 +40,104 @@ class DataQualityValidator:
 
 
 
-        total_inputs = len(
-            required_fields
+        # Positive value validation
+
+        positive_fields = [
+
+            "xau_usd",
+            "usd_free_rate",
+            "gold18_price",
+            "mesghal_price",
+            "coin_emami",
+            "coin_bahar"
+
+        ]
+
+
+        for field in positive_fields:
+
+            value = validated_data.get(field)
+
+            if value is not None and value <= 0:
+
+                invalid_inputs.append(field)
+
+                warnings.append(
+                    f"{field} value is invalid"
+                )
+
+                validated_data[field] = None
+
+
+
+        # Bubble validation
+
+        bubble = validated_data.get(
+            "coin_bubble"
         )
 
 
-        quality = self.calculate_quality(
-            available_inputs,
-            total_inputs
+        if bubble is not None and bubble < 0:
+
+            invalid_inputs.append(
+                "coin_bubble"
+            )
+
+            warnings.append(
+                "Negative coin bubble detected"
+            )
+
+            validated_data["coin_bubble"] = None
+
+
+
+        available_inputs = sum(
+
+            1
+            for field in required_fields
+            if validated_data.get(field) is not None
+
         )
+
+
+        if invalid_inputs:
+
+            data_quality = "INVALID"
+
+        else:
+
+            ratio = (
+                available_inputs /
+                len(required_fields)
+            )
+
+
+            if ratio >= 0.85:
+
+                data_quality = "GOOD"
+
+            elif ratio >= 0.50:
+
+                data_quality = "PARTIAL"
+
+            else:
+
+                data_quality = "LOW"
+
 
 
         return {
 
-            "available_inputs":
-                available_inputs,
+            "validated_data": validated_data,
 
-            "missing_inputs":
-                missing_inputs,
+            "available_inputs": available_inputs,
 
-            "data_quality":
-                quality,
+            "missing_inputs": missing_inputs,
 
-            "validated_data":
-                data,
+            "invalid_inputs": invalid_inputs,
 
-            "warnings":
-                []
+            "warnings": warnings,
+
+            "data_quality": data_quality
 
         }
-
-
-
-    def calculate_quality(
-        self,
-        available: int,
-        total: int
-    ) -> str:
-
-
-        if total == 0:
-
-            return "UNKNOWN"
-
-
-        ratio = (
-            available /
-            total
-        )
-
-
-        if ratio >= 0.85:
-
-            return "GOOD"
-
-
-        elif ratio >= 0.50:
-
-            return "MEDIUM"
-
-
-        else:
-
-            return "LOW"
