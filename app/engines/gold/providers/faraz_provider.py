@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Dict
+import time
 
 import httpx
 
@@ -11,7 +12,7 @@ from .normalizer import GoldNormalizer
 
 class FarazGoldProvider:
     """
-    Faraz.io Gold Market Provider V10
+    Faraz.io Gold Market Provider V11
 
     Sources:
 
@@ -28,6 +29,7 @@ class FarazGoldProvider:
        - gold18
        - volume
     """
+
 
     def __init__(self):
 
@@ -58,42 +60,68 @@ class FarazGoldProvider:
         url: str
     ):
 
-        try:
 
-            headers = {
+        headers = {
 
-                "User-Agent":
-                    (
-                        "Mozilla/5.0 "
-                        "(Windows NT 10.0; Win64; x64)"
+            "User-Agent":
+                (
+                    "Mozilla/5.0 "
+                    "(Windows NT 10.0; Win64; x64)"
+                )
+
+        }
+
+
+
+        for attempt in range(3):
+
+            try:
+
+
+                response = httpx.get(
+
+                    url,
+
+                    headers=headers,
+
+                    timeout=httpx.Timeout(
+                        connect=10,
+                        read=40,
+                        write=10,
+                        pool=10
                     )
 
-            }
+                )
 
 
-            response = httpx.get(
-                url,
-                headers=headers,
-                timeout=20
-            )
+                response.raise_for_status()
 
 
-            response.raise_for_status()
-
-
-            return response.text
+                return response.text
 
 
 
-        except Exception as e:
+            except Exception as e:
 
-            print(
-                "FETCH ERROR:",
-                url,
-                e
-            )
 
-            return None
+                print(
+                    f"FETCH ATTEMPT {attempt + 1}/3 FAILED:",
+                    url,
+                    e
+                )
+
+
+                time.sleep(2)
+
+
+
+        print(
+            "FETCH FAILED AFTER RETRIES:",
+            url
+        )
+
+
+        return None
 
 
 
@@ -102,6 +130,7 @@ class FarazGoldProvider:
         print(
             "######## COIN FETCH ########"
         )
+
 
         print(
             "URL:",
@@ -136,6 +165,7 @@ class FarazGoldProvider:
         print(
             "######## GOLD18 FETCH ########"
         )
+
 
         print(
             "URL:",
@@ -172,12 +202,12 @@ class FarazGoldProvider:
 
         try:
 
+
             print(
                 "######## GOLD PROVIDER ACTIVE ########"
             )
 
 
-            # Market
 
             market_html = (
                 self.scraper.fetch_page()
@@ -208,8 +238,6 @@ class FarazGoldProvider:
 
 
 
-            # Coin
-
             coin_data = {}
 
 
@@ -235,8 +263,6 @@ class FarazGoldProvider:
             )
 
 
-
-            # Gold18
 
             gold18_data = {}
 
@@ -264,8 +290,6 @@ class FarazGoldProvider:
 
 
 
-            # Merge
-
             parsed_data = {}
 
 
@@ -289,11 +313,9 @@ class FarazGoldProvider:
                 "######## FINAL PARSED GOLD ########"
             )
 
-
             print(
                 parsed_data
             )
-
 
             print(
                 "###################################"
@@ -334,6 +356,7 @@ class FarazGoldProvider:
     def _fallback(self):
 
         return {
+
 
             "xau_usd": None,
 
