@@ -9,7 +9,10 @@ class GoldData(BaseModel):
     Iran + Global Gold Market
     """
 
+
+    # ======================
     # Global Market
+    # ======================
 
     xau_usd: Optional[float] = None
 
@@ -18,7 +21,10 @@ class GoldData(BaseModel):
     us10y_yield: Optional[float] = None
 
 
+
+    # ======================
     # Iran Market
+    # ======================
 
     usd_free_rate: Optional[float] = None
 
@@ -35,25 +41,34 @@ class GoldData(BaseModel):
     coin_bubble: Optional[float] = None
 
 
+
+    # ======================
     # Market Behavior
+    # ======================
 
     gold_daily_change: Optional[float] = None
 
     volume: Optional[float] = None
 
 
+
     timestamp: Optional[datetime] = None
+
+
 
 
 
 class GoldReport(BaseModel):
     """
     Gold Intelligence Engine Output
+    ARPI Gold Intelligence v4
     """
+
 
     engine: str
 
     version: str
+
 
     gold_score: float
 
@@ -61,17 +76,26 @@ class GoldReport(BaseModel):
 
     signal: str
 
+
+    # Dynamic Intelligence Layer
+
+    market_regime: Optional[str] = None
+
+
     confidence: float
+
 
     drivers: List[str]
 
     risks: List[str]
+
 
     data_quality: str
 
     available_inputs: int
 
     missing_inputs: List[str]
+
 
     timestamp: datetime = Field(
         default_factory=datetime.utcnow
