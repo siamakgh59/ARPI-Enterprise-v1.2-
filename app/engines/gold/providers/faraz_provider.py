@@ -11,7 +11,7 @@ from .normalizer import GoldNormalizer
 
 class FarazGoldProvider:
     """
-    Faraz.io Gold Market Provider V9
+    Faraz.io Gold Market Provider V10
 
     Sources:
 
@@ -50,6 +50,7 @@ class FarazGoldProvider:
         self.gold18_url = (
             "https://faraz.io/markets/gold-currency/geramTalaHejdah"
         )
+
 
 
     def fetch_page(
@@ -171,17 +172,12 @@ class FarazGoldProvider:
 
         try:
 
-
             print(
                 "######## GOLD PROVIDER ACTIVE ########"
             )
 
 
-
-            # -----------------------------
             # Market
-            # -----------------------------
-
 
             market_html = (
                 self.scraper.fetch_page()
@@ -212,10 +208,7 @@ class FarazGoldProvider:
 
 
 
-            # -----------------------------
             # Coin
-            # -----------------------------
-
 
             coin_data = {}
 
@@ -243,10 +236,7 @@ class FarazGoldProvider:
 
 
 
-            # -----------------------------
             # Gold18
-            # -----------------------------
-
 
             gold18_data = {}
 
@@ -274,10 +264,7 @@ class FarazGoldProvider:
 
 
 
-            # -----------------------------
             # Merge
-            # -----------------------------
-
 
             parsed_data = {}
 
@@ -295,73 +282,6 @@ class FarazGoldProvider:
             parsed_data.update(
                 gold18_data
             )
-
-
-
-            # -----------------------------
-            # Coin Bubble Calculation
-            # -----------------------------
-
-
-            try:
-
-
-                coin = parsed_data.get(
-                    "coin_emami"
-                )
-
-
-                mesghal = parsed_data.get(
-                    "mesghal_price"
-                )
-
-
-
-                if coin and mesghal:
-
-
-                    theoretical_price = (
-                        mesghal * 0.235
-                    )
-
-
-                    bubble = (
-
-                        (
-                            coin
-                            -
-                            theoretical_price
-                        )
-
-                        /
-
-                        theoretical_price
-
-                    ) * 100
-
-
-
-                    parsed_data[
-                        "coin_bubble"
-                    ] = round(
-                        bubble,
-                        2
-                    )
-
-
-                    print(
-                        "CALCULATED COIN BUBBLE %",
-                        parsed_data["coin_bubble"]
-                    )
-
-
-
-            except Exception as e:
-
-                print(
-                    "COIN BUBBLE ERROR:",
-                    e
-                )
 
 
 
@@ -386,7 +306,6 @@ class FarazGoldProvider:
                     parsed_data
                 )
             )
-
 
 
             print(
@@ -415,7 +334,6 @@ class FarazGoldProvider:
     def _fallback(self):
 
         return {
-
 
             "xau_usd": None,
 
