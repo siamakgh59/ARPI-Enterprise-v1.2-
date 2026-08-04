@@ -4,9 +4,9 @@ ARPI Gold Dynamic Weight Engine v1.0
 Centralized scoring weights.
 
 Future:
-- Regime adjustment
-- Market cycle adaptation
+- Market regime adjustment
 - AI optimization
+- Historical calibration
 """
 
 
@@ -20,14 +20,14 @@ class GoldDynamicWeights:
     BASE_WEIGHTS = {
 
 
-        # Domestic Gold Market
+        # Domestic Market
 
         "gold18_price": 0.15,
 
         "mesghal_price": 0.10,
 
 
-        # Currency Effect
+        # Currency
 
         "usd_free_rate": 0.20,
 
@@ -43,9 +43,12 @@ class GoldDynamicWeights:
         "us10y_yield": 0.10,
 
 
-        # Market Behavior
+        # Momentum
 
         "gold_momentum": 0.05,
+
+
+        # Liquidity
 
         "volume": 0.02,
 
@@ -63,9 +66,9 @@ class GoldDynamicWeights:
         """
         Return active weights.
 
-        Later:
-        This method will receive
-        market regime and modify weights.
+        Later versions:
+        - regime based weights
+        - adaptive weights
         """
 
         return self.BASE_WEIGHTS.copy()
