@@ -3,7 +3,7 @@ from typing import Dict, List
 
 class GoldCalculator:
     """
-    ARPI Gold Intelligence Calculator v3.3
+    ARPI Gold Intelligence Calculator v3.4
 
     Responsibilities:
     - Gold factor analysis
@@ -11,13 +11,10 @@ class GoldCalculator:
     - Trend generation
     - Signal generation
     - Confidence estimation
-
-    Note:
-    Coin bubble calculation is handled by Provider layer.
-    Calculator only analyzes normalized value.
+    - Coin bubble normalization
     """
 
-    VERSION = "3.3.0"
+    VERSION = "3.4.0"
 
 
     def calculate(
@@ -32,14 +29,15 @@ class GoldCalculator:
 
         risks: List[str] = []
 
+        bubble_status = "UNKNOWN"
+
+
 
         # -----------------------------
         # Gold 18 Price
         # -----------------------------
 
-        gold18 = factors.get(
-            "gold18_price"
-        )
+        gold18 = factors.get("gold18_price")
 
 
         if gold18 is not None:
@@ -62,9 +60,7 @@ class GoldCalculator:
         # Mesghal Price
         # -----------------------------
 
-        mesghal = factors.get(
-            "mesghal_price"
-        )
+        mesghal = factors.get("mesghal_price")
 
 
         if mesghal is not None:
@@ -87,9 +83,7 @@ class GoldCalculator:
         # USD Market
         # -----------------------------
 
-        usd = factors.get(
-            "usd_free_rate"
-        )
+        usd = factors.get("usd_free_rate")
 
 
         if usd is not None:
@@ -118,7 +112,6 @@ class GoldCalculator:
 
 
         if change is not None:
-
 
             if change > 0:
 
@@ -158,7 +151,6 @@ class GoldCalculator:
 
         # -----------------------------
         # Coin Bubble Analysis
-        # Provider already normalized
         # -----------------------------
 
         bubble = factors.get(
@@ -166,21 +158,103 @@ class GoldCalculator:
         )
 
 
+        coin = factors.get(
+            "coin_emami"
+        )
+
+
+        mesghal_price = factors.get(
+            "mesghal_price"
+        )
+
+
+        normalized_bubble = None
+
+
+
         if bubble is not None:
 
 
-            if bubble >= 10:
+            # Provider may send raw IRR value
+            # Convert to percentage
+
+
+            if bubble > 100:
+
+
+                try:
+
+                    if coin and mesghal_price:
+
+
+                        theoretical_price = (
+                            mesghal_price * 4.0715
+                        )
+
+
+                        normalized_bubble = (
+
+                            (
+                                coin
+                                -
+                                theoretical_price
+                            )
+
+                            /
+
+                            theoretical_price
+
+                        ) * 100
+
+
+
+                except Exception:
+
+                    normalized_bubble = None
+
+
+            else:
+
+                normalized_bubble = bubble
+
+
+
+        if normalized_bubble is not None:
+
+
+            normalized_bubble = round(
+                normalized_bubble,
+                2
+            )
+
+
+            if normalized_bubble >= 15:
 
                 score -= 10
+
+                bubble_status = "EXTREME"
+
+                risks.append(
+                    "Extreme coin bubble risk"
+                )
+
+
+            elif normalized_bubble >= 7:
+
+                score -= 7
+
+                bubble_status = "HIGH"
 
                 risks.append(
                     "High coin bubble risk"
                 )
 
 
-            elif bubble >= 5:
+            elif normalized_bubble >= 3:
 
-                score -= 5
+                score -= 3
+
+                bubble_status = "WARNING"
 
                 risks.append(
                     "Medium coin bubble risk"
@@ -188,6 +262,8 @@ class GoldCalculator:
 
 
             else:
+
+                bubble_status = "NORMAL"
 
                 drivers.append(
                     "Controlled coin bubble"
@@ -280,7 +356,7 @@ class GoldCalculator:
 
 
         # -----------------------------
-        # Score Normalize
+        # Normalize Score
         # -----------------------------
 
         score = max(
@@ -378,6 +454,9 @@ class GoldCalculator:
 
             "risks":
                 risks,
+
+            "bubble_status":
+                bubble_status,
 
             "calculator_version":
                 self.VERSION
