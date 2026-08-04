@@ -3,20 +3,21 @@ from typing import Dict, List
 
 class GoldCalculator:
     """
-    ARPI Gold Intelligence Calculator v3.2
+    ARPI Gold Intelligence Calculator v3.3
 
-    Responsible for:
+    Responsibilities:
     - Gold factor analysis
     - Weighted scoring
     - Trend generation
     - Signal generation
     - Confidence estimation
-    - Coin bubble normalization
+
+    Note:
+    Coin bubble calculation is handled by Provider layer.
+    Calculator only analyzes normalized value.
     """
 
-
-    VERSION = "3.2.0"
-
+    VERSION = "3.3.0"
 
 
     def calculate(
@@ -32,10 +33,9 @@ class GoldCalculator:
         risks: List[str] = []
 
 
-
-        # --------------------------------
+        # -----------------------------
         # Gold 18 Price
-        # --------------------------------
+        # -----------------------------
 
         gold18 = factors.get(
             "gold18_price"
@@ -58,9 +58,9 @@ class GoldCalculator:
 
 
 
-        # --------------------------------
+        # -----------------------------
         # Mesghal Price
-        # --------------------------------
+        # -----------------------------
 
         mesghal = factors.get(
             "mesghal_price"
@@ -83,9 +83,9 @@ class GoldCalculator:
 
 
 
-        # --------------------------------
-        # USD Free Rate
-        # --------------------------------
+        # -----------------------------
+        # USD Market
+        # -----------------------------
 
         usd = factors.get(
             "usd_free_rate"
@@ -108,9 +108,9 @@ class GoldCalculator:
 
 
 
-        # --------------------------------
-        # Gold Daily Momentum
-        # --------------------------------
+        # -----------------------------
+        # Gold Momentum
+        # -----------------------------
 
         change = factors.get(
             "gold_daily_change"
@@ -139,9 +139,9 @@ class GoldCalculator:
 
 
 
-        # --------------------------------
+        # -----------------------------
         # Volume
-        # --------------------------------
+        # -----------------------------
 
         volume = factors.get(
             "volume"
@@ -156,62 +156,18 @@ class GoldCalculator:
 
 
 
-        # --------------------------------
-        # Coin Bubble Normalization
-        # --------------------------------
+        # -----------------------------
+        # Coin Bubble Analysis
+        # Provider already normalized
+        # -----------------------------
 
         bubble = factors.get(
             "coin_bubble"
         )
 
 
-        coin = factors.get(
-            "coin_emami"
-        )
-
-
         if bubble is not None:
 
-
-            # Faraz ممکن است مقدار ریالی بدهد
-            # تبدیل به درصد واقعی
-
-            if bubble > 1000:
-
-
-                if coin and mesghal:
-
-
-                    theoretical_price = (
-                        mesghal * 0.0325
-                    )
-
-
-                    bubble = (
-                        (
-                            coin
-                            -
-                            theoretical_price
-                        )
-                        /
-                        theoretical_price
-                    ) * 100
-
-
-                    bubble = round(
-                        bubble,
-                        2
-                    )
-
-
-                    print(
-                        "NORMALIZED COIN BUBBLE %",
-                        bubble
-                    )
-
-
-
-            # تحلیل درصد حباب
 
             if bubble >= 10:
 
@@ -239,9 +195,9 @@ class GoldCalculator:
 
 
 
-        # --------------------------------
-        # Global Gold (XAU/USD)
-        # --------------------------------
+        # -----------------------------
+        # Global Gold Price
+        # -----------------------------
 
         xau = factors.get(
             "xau_usd"
@@ -270,9 +226,9 @@ class GoldCalculator:
 
 
 
-        # --------------------------------
+        # -----------------------------
         # Dollar Index
-        # --------------------------------
+        # -----------------------------
 
         dxy = factors.get(
             "dxy"
@@ -301,9 +257,9 @@ class GoldCalculator:
 
 
 
-        # --------------------------------
-        # US10Y Yield
-        # --------------------------------
+        # -----------------------------
+        # US Treasury Yield
+        # -----------------------------
 
         yield10 = factors.get(
             "us10y_yield"
@@ -323,9 +279,9 @@ class GoldCalculator:
 
 
 
-        # --------------------------------
-        # Normalize
-        # --------------------------------
+        # -----------------------------
+        # Score Normalize
+        # -----------------------------
 
         score = max(
             0,
@@ -337,9 +293,9 @@ class GoldCalculator:
 
 
 
-        # --------------------------------
+        # -----------------------------
         # Trend
-        # --------------------------------
+        # -----------------------------
 
         if score >= 75:
 
@@ -362,9 +318,9 @@ class GoldCalculator:
 
 
 
-        # --------------------------------
+        # -----------------------------
         # Signal
-        # --------------------------------
+        # -----------------------------
 
         if score >= 70:
 
@@ -382,9 +338,9 @@ class GoldCalculator:
 
 
 
-        # --------------------------------
+        # -----------------------------
         # Confidence
-        # --------------------------------
+        # -----------------------------
 
         confidence = (
             40
