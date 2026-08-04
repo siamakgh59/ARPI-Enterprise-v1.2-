@@ -3,81 +3,168 @@ from datetime import datetime
 from app.engines.gold.calculator import GoldCalculator
 from app.engines.gold.models import GoldReport
 
-
 class GoldEngine:
     """
-    ARPI Gold Intelligence Engine v4.2
+    ============================================
+    ARPI Gold Intelligence Engine
+    Version : 4.2.0 Stable
+    ============================================
+
+    مسئولیت‌ها:
+
+    - اجرای Gold Calculator
+    - تولید GoldReport
+    - محاسبه کیفیت داده
+    - محاسبه Confidence
+    - تعیین Trend
+    - سازگاری کامل با Dashboard
+    - سازگاری کامل با Fusion Engine
+    - سازگاری کامل با Swagger
     """
 
     VERSION = "4.2.0"
 
     def __init__(self):
+
         self.calculator = GoldCalculator()
+
+    # -------------------------------------------------
 
     def analyze(self, data: dict):
 
         result = self.calculator.calculate(data)
 
-        # -----------------------------
+        # -----------------------------------------
         # Available Inputs
-        # -----------------------------
+        # -----------------------------------------
 
         total_inputs = [
+
             "xau_usd",
+
             "dxy",
+
             "us10y_yield",
+
             "usd_free_rate",
+
             "usd_change",
+
             "gold18_price",
+
             "mesghal_price",
+
             "coin_emami",
+
             "coin_bahar",
+
             "coin_bubble",
+
             "gold_daily_change",
-            "volume",
+
+            "volume"
+
         ]
 
         available = []
+
         missing = []
 
         for field in total_inputs:
+
             if data.get(field) is not None:
+
                 available.append(field)
+
             else:
+
                 missing.append(field)
 
-        # -----------------------------
-        # Trend
-        # -----------------------------
+        # -----------------------------------------
+        # Trend Mapping
+        # -----------------------------------------
 
-        score = result["gold_score"]
+        score = float(result.get("gold_score", 50))
+
+        # -----------------------------------------
+        # Trend Mapping
+        # -----------------------------------------
 
         if score >= 85:
+
             trend = "STRONG_BULL"
 
         elif score >= 70:
-            trend = "CAUTIOUS"
+
+            trend = "BULLISH"
 
         elif score >= 55:
+
+            trend = "CAUTIOUS"
+
+        elif score >= 40:
+
             trend = "SIDEWAYS"
 
         else:
+
             trend = "BEARISH"
 
-        # -----------------------------
+        # -----------------------------------------
+        # Signal
+        # -----------------------------------------
+
+        signal = result.get("signal", "HOLD")
+
+        # -----------------------------------------
         # Confidence
-        # -----------------------------
+        # -----------------------------------------
 
         confidence = result.get("confidence", 70)
 
-        if result.get("market_regime") == "GOLD_STRESS":
+        market_regime = result.get("market_regime")
+
+        if market_regime == "GOLD_STRESS":
+
             confidence += 5
 
-        confidence = min(95, confidence)
+        elif market_regime == "SAFE_HAVEN":
 
-        # -----------------------------
-        # Report
-        # -----------------------------
+            confidence += 3
+
+        confidence = min(confidence, 95)
+
+        # -----------------------------------------
+        # Data Quality
+        # -----------------------------------------
+
+        if len(missing) == 0:
+
+            data_quality = "GOOD"
+
+        elif len(missing) <= 3:
+
+            data_quality = "PARTIAL"
+
+        else:
+
+            data_quality = "WEAK"
+
+        # -----------------------------------------
+        # Drivers
+        # -----------------------------------------
+
+        drivers = result.get("drivers", [])
+
+        # -----------------------------------------
+        # Risks
+        # -----------------------------------------
+
+        risks = result.get("risks", [])
+
+        # -----------------------------------------
+        # Build Report
+        # -----------------------------------------
 
         report = GoldReport(
 
@@ -89,17 +176,17 @@ class GoldEngine:
 
             trend=trend,
 
-            signal=result["signal"],
+            signal=signal,
 
-            market_regime=result.get("market_regime"),
+            market_regime=market_regime,
 
             confidence=confidence,
 
-            drivers=result["drivers"],
+            drivers=drivers,
 
-            risks=result["risks"],
+            risks=risks,
 
-            data_quality="GOOD" if len(missing) == 0 else "PARTIAL",
+            data_quality=data_quality,
 
             available_inputs=len(available),
 
@@ -109,4 +196,40 @@ class GoldEngine:
 
         )
 
+        # -----------------------------------------
+        # Debug
+        # -----------------------------------------
+
+        print("######## GOLD ENGINE OUTPUT ########")
+
+        print(report.model_dump())
+
+        print("####################################")
+
         return report.model_dump()
+
+# ======================================================
+# Backward Compatibility
+# ======================================================
+
+class GoldIntelligenceEngine(GoldEngine):
+    """
+    Legacy compatibility wrapper.
+
+    Older parts of ARPI (Fusion Engine, Dashboard,
+    API modules and previous releases) import:
+
+        GoldIntelligenceEngine
+
+    while newer code imports:
+
+        GoldEngine
+
+    This wrapper keeps both interfaces working.
+    """
+    pass
+
+__all__ = [
+    "GoldEngine",
+    "GoldIntelligenceEngine",
+]
