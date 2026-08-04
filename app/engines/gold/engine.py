@@ -1,135 +1,112 @@
 from datetime import datetime
-from typing import Dict, Any
 
-from .validator import GoldValidator
-from .calculator import GoldCalculator
+from app.engines.gold.calculator import GoldCalculator
+from app.engines.gold.models import GoldReport
 
 
-class GoldIntelligenceEngine:
-
+class GoldEngine:
     """
-    ARPI Gold Intelligence Engine v4.0
-
-    Pipeline:
-
-    Provider
-        |
-    Normalizer
-        |
-    Validator
-        |
-    Dynamic Calculator
-        |
-    Intelligence Report
-
+    ARPI Gold Intelligence Engine v4.2
     """
 
-    VERSION = "4.0.0"
-
+    VERSION = "4.2.0"
 
     def __init__(self):
-
-        self.validator = GoldValidator()
-
         self.calculator = GoldCalculator()
 
+    def analyze(self, data: dict):
 
+        result = self.calculator.calculate(data)
 
-    def analyze(
-        self,
-        data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        # -----------------------------
+        # Available Inputs
+        # -----------------------------
 
+        total_inputs = [
+            "xau_usd",
+            "dxy",
+            "us10y_yield",
+            "usd_free_rate",
+            "usd_change",
+            "gold18_price",
+            "mesghal_price",
+            "coin_emami",
+            "coin_bahar",
+            "coin_bubble",
+            "gold_daily_change",
+            "volume",
+        ]
 
-        validation = (
-            self.validator.validate(
-                data
-            )
+        available = []
+        missing = []
+
+        for field in total_inputs:
+            if data.get(field) is not None:
+                available.append(field)
+            else:
+                missing.append(field)
+
+        # -----------------------------
+        # Trend
+        # -----------------------------
+
+        score = result["gold_score"]
+
+        if score >= 85:
+            trend = "STRONG_BULL"
+
+        elif score >= 70:
+            trend = "CAUTIOUS"
+
+        elif score >= 55:
+            trend = "SIDEWAYS"
+
+        else:
+            trend = "BEARISH"
+
+        # -----------------------------
+        # Confidence
+        # -----------------------------
+
+        confidence = result.get("confidence", 70)
+
+        if result.get("market_regime") == "GOLD_STRESS":
+            confidence += 5
+
+        confidence = min(95, confidence)
+
+        # -----------------------------
+        # Report
+        # -----------------------------
+
+        report = GoldReport(
+
+            engine="Gold Intelligence Engine",
+
+            version=self.VERSION,
+
+            gold_score=score,
+
+            trend=trend,
+
+            signal=result["signal"],
+
+            market_regime=result.get("market_regime"),
+
+            confidence=confidence,
+
+            drivers=result["drivers"],
+
+            risks=result["risks"],
+
+            data_quality="GOOD" if len(missing) == 0 else "PARTIAL",
+
+            available_inputs=len(available),
+
+            missing_inputs=missing,
+
+            timestamp=datetime.utcnow()
+
         )
 
-
-        validated_data = (
-            validation["validated_data"]
-        )
-
-
-        result = (
-            self.calculator.calculate(
-                validated_data
-            )
-        )
-
-
-        print(
-            "######## ACTIVE GOLD CALCULATOR ########"
-        )
-
-        print(
-            result.get(
-                "calculator_version"
-            )
-        )
-
-        print(
-            "########################################"
-        )
-
-
-
-        return {
-
-
-            "engine":
-                "Gold Intelligence Engine",
-
-
-            "version":
-                self.VERSION,
-
-
-            "gold_score":
-                result["gold_score"],
-
-
-            "trend":
-                result["trend"],
-
-
-            "signal":
-                result["signal"],
-
-
-            "market_regime":
-                result.get(
-                    "market_regime"
-                ),
-
-
-            "confidence":
-                result["confidence"],
-
-
-            "drivers":
-                result["drivers"],
-
-
-            "risks":
-                result["risks"],
-
-
-            "data_quality":
-                validation["data_quality"],
-
-
-            "available_inputs":
-                validation["available_inputs"],
-
-
-            "missing_inputs":
-                validation["missing_inputs"],
-
-
-            "timestamp":
-                datetime.utcnow()
-
-        }
+        return report.model_dump()
