@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Dict, Any
 
 from .validator import GoldValidator
-from .calculator import GoldCalculator
+from .dynamic_calculator import DynamicGoldCalculator
 
 
 
