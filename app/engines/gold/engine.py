@@ -2,14 +2,13 @@ from datetime import datetime
 from typing import Dict, Any
 
 from .validator import GoldValidator
-from .dynamic_calculator import DynamicGoldCalculator
-
+from .calculator import GoldCalculator
 
 
 class GoldIntelligenceEngine:
 
     """
-    ARPI Gold Intelligence Engine v3.4
+    ARPI Gold Intelligence Engine v4.0
 
     Pipeline:
 
@@ -19,22 +18,20 @@ class GoldIntelligenceEngine:
         |
     Validator
         |
-    Calculator v3.4
+    Dynamic Calculator
         |
     Intelligence Report
 
     """
 
-
-    VERSION = "3.4.0"
-
+    VERSION = "4.0.0"
 
 
     def __init__(self):
 
         self.validator = GoldValidator()
 
-        self.calculator = DynamicGoldCalculator()
+        self.calculator = GoldCalculator()
 
 
 
@@ -44,10 +41,6 @@ class GoldIntelligenceEngine:
     ) -> Dict[str, Any]:
 
 
-        # -----------------------------
-        # Validation Layer
-        # -----------------------------
-
         validation = (
             self.validator.validate(
                 data
@@ -56,16 +49,9 @@ class GoldIntelligenceEngine:
 
 
         validated_data = (
-            validation[
-                "validated_data"
-            ]
+            validation["validated_data"]
         )
 
-
-
-        # -----------------------------
-        # Intelligence Calculation
-        # -----------------------------
 
         result = (
             self.calculator.calculate(
@@ -74,11 +60,9 @@ class GoldIntelligenceEngine:
         )
 
 
-
         print(
             "######## ACTIVE GOLD CALCULATOR ########"
         )
-
 
         print(
             result.get(
@@ -86,16 +70,11 @@ class GoldIntelligenceEngine:
             )
         )
 
-
         print(
             "########################################"
         )
 
 
-
-        # -----------------------------
-        # Final Intelligence Report
-        # -----------------------------
 
         return {
 
@@ -104,73 +83,50 @@ class GoldIntelligenceEngine:
                 "Gold Intelligence Engine",
 
 
-
             "version":
                 self.VERSION,
 
 
-
             "gold_score":
-                result[
-                    "gold_score"
-                ],
-
+                result["gold_score"],
 
 
             "trend":
-                result[
-                    "trend"
-                ],
-
+                result["trend"],
 
 
             "signal":
-                result[
-                    "signal"
-                ],
+                result["signal"],
 
+
+            "market_regime":
+                result.get(
+                    "market_regime"
+                ),
 
 
             "confidence":
-                result[
-                    "confidence"
-                ],
-
+                result["confidence"],
 
 
             "drivers":
-                result[
-                    "drivers"
-                ],
-
+                result["drivers"],
 
 
             "risks":
-                result[
-                    "risks"
-                ],
-
+                result["risks"],
 
 
             "data_quality":
-                validation[
-                    "data_quality"
-                ],
-
+                validation["data_quality"],
 
 
             "available_inputs":
-                validation[
-                    "available_inputs"
-                ],
-
+                validation["available_inputs"],
 
 
             "missing_inputs":
-                validation[
-                    "missing_inputs"
-                ],
-
+                validation["missing_inputs"],
 
 
             "timestamp":
