@@ -34,7 +34,7 @@ class GoldIntelligenceEngine:
 
         self.validator = GoldValidator()
 
-        self.calculator = GoldCalculator()
+        self.calculator = DynamicGoldCalculator()
 
 
 
