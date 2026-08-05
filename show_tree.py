@@ -1,17 +1,28 @@
 import os
 
+IGNORE = {
+    "__pycache__",
+    ".git",
+    ".venv",
+    "venv",
+    "node_modules"
+}
+
 def tree(path, prefix=""):
-    files = os.listdir(path)
+    items = [
+        x for x in os.listdir(path)
+        if x not in IGNORE
+    ]
 
-    for index, file in enumerate(files):
-        full = os.path.join(path, file)
+    for index, item in enumerate(items):
+        full = os.path.join(path, item)
 
-        connector = "└── " if index == len(files)-1 else "├── "
+        connector = "└── " if index == len(items)-1 else "├── "
 
-        print(prefix + connector + file)
+        print(prefix + connector + item)
 
         if os.path.isdir(full):
-            extension = "    " if index == len(files)-1 else "│   "
+            extension = "    " if index == len(items)-1 else "│   "
             tree(full, prefix + extension)
 
-tree(".")
+tree("app")
