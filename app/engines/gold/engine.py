@@ -1,10 +1,11 @@
 from datetime import datetime
 
+from app.core.base_engine import BaseEngine
 from app.engines.gold.dynamic_scoring import DynamicGoldScoringEngine
 from app.engines.gold.models import GoldReport
 
 
-class GoldEngine:
+class GoldEngine(BaseEngine):
     """
     ============================================
     ARPI Gold Intelligence Engine
@@ -23,11 +24,21 @@ class GoldEngine:
     - سازگاری کامل با Swagger
     """
 
+    NAME = "Gold Intelligence Engine"
     VERSION = "4.2.0"
 
     def __init__(self):
         self.scorer = DynamicGoldScoringEngine()
 
+    # -------------------------------------------------
+    # رابط یکسان BaseEngine
+    # -------------------------------------------------
+
+    def run(self, payload: dict) -> dict:
+        return self.analyze(payload)
+
+    # -------------------------------------------------
+    # رابط اختصاصی (بدون تغییر، برای سازگاری با کدهای فعلی)
     # -------------------------------------------------
 
     def analyze(self, data: dict):
@@ -123,7 +134,7 @@ class GoldEngine:
         # -----------------------------------------
 
         report = GoldReport(
-            engine="Gold Intelligence Engine",
+            engine=self.NAME,
             version=self.VERSION,
             gold_score=score,
             trend=trend,
