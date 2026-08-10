@@ -40,6 +40,8 @@ class GoldData(BaseModel):
 
     coin_bubble: Optional[float] = None
 
+    coin_bubble_percent: Optional[float] = None
+
 
 
     # ======================
