@@ -65,7 +65,8 @@ def dashboard_summary():
             asset,
             signal,
             confidence,
-            risk_report.risk_level.value
+            risk_report.risk_level.value,
+            base_reasoning=item.get("reasoning", [])
         )
 
 
@@ -177,7 +178,3 @@ def dashboard_summary():
         }
 
     }
-
-        
-
-    
