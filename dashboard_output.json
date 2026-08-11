@@ -1,0 +1,166 @@
+{
+    "application": "ARPI Enterprise",
+    "version": "1.4.0",
+    "timestamp": "2026-08-11T19:43:58.650543",
+    "dashboard_status": "ACTIVE",
+    "arpi_score": {
+        "value": 61,
+        "status": "calculating"
+    },
+    "market": {
+        "status": "LIVE",
+        "engine": "ARPI Market Engine"
+    },
+    "risk_intelligence": {
+        "engine": "RIE",
+        "status": "ACTIVE",
+        "risk_summary": {
+            "HIGH": 0,
+            "MEDIUM": 8,
+            "LOW": 0,
+            "CRITICAL": 0
+        }
+    },
+    "assets": {
+        "total": 8,
+        "analyzed": [
+            {
+                "asset": "gold",
+                "signal": "BUY",
+                "confidence": 80.0,
+                "risk": "MEDIUM",
+                "reasoning": [
+                    "USD pressure detected"
+                ],
+                "risk_score": 39.0,
+                "risk_level": "MEDIUM"
+            },
+            {
+                "asset": "silver",
+                "signal": "SELL",
+                "confidence": 60,
+                "risk": "MEDIUM",
+                "reasoning": [
+                    "Momentum weakness detected",
+                    "USD pressure detected"
+                ],
+                "risk_score": 48.0,
+                "risk_level": "MEDIUM"
+            },
+            {
+                "asset": "oil_wti",
+                "signal": "HOLD",
+                "confidence": 55,
+                "risk": "MEDIUM",
+                "reasoning": [],
+                "risk_score": 48.25,
+                "risk_level": "MEDIUM"
+            },
+            {
+                "asset": "oil_brent",
+                "signal": "HOLD",
+                "confidence": 55,
+                "risk": "MEDIUM",
+                "reasoning": [],
+                "risk_score": 48.25,
+                "risk_level": "MEDIUM"
+            },
+            {
+                "asset": "usd_index",
+                "signal": "BUY",
+                "confidence": 60,
+                "risk": "MEDIUM",
+                "reasoning": [],
+                "risk_score": 40.0,
+                "risk_level": "MEDIUM"
+            },
+            {
+                "asset": "eurusd",
+                "signal": "HOLD",
+                "confidence": 50,
+                "risk": "MEDIUM",
+                "reasoning": [],
+                "risk_score": 44.5,
+                "risk_level": "MEDIUM"
+            },
+            {
+                "asset": "vix",
+                "signal": "SELL",
+                "confidence": 65,
+                "risk": "MEDIUM",
+                "reasoning": [
+                    "Momentum weakness detected"
+                ],
+                "risk_score": 51.75,
+                "risk_level": "MEDIUM"
+            },
+            {
+                "asset": "bitcoin",
+                "signal": "SELL",
+                "confidence": 60,
+                "risk": "MEDIUM",
+                "reasoning": [
+                    "Momentum weakness detected"
+                ],
+                "risk_score": 48.0,
+                "risk_level": "MEDIUM"
+            }
+        ]
+    },
+    "decision_summary": {
+        "top_signals": [
+            {
+                "asset": "gold",
+                "signal": "BUY",
+                "confidence": 80.0,
+                "risk": "MEDIUM",
+                "reasoning": [
+                    "USD pressure detected"
+                ],
+                "risk_score": 39.0,
+                "risk_level": "MEDIUM"
+            },
+            {
+                "asset": "silver",
+                "signal": "SELL",
+                "confidence": 60,
+                "risk": "MEDIUM",
+                "reasoning": [
+                    "Momentum weakness detected",
+                    "USD pressure detected"
+                ],
+                "risk_score": 48.0,
+                "risk_level": "MEDIUM"
+            },
+            {
+                "asset": "oil_wti",
+                "signal": "HOLD",
+                "confidence": 55,
+                "risk": "MEDIUM",
+                "reasoning": [],
+                "risk_score": 48.25,
+                "risk_level": "MEDIUM"
+            },
+            {
+                "asset": "oil_brent",
+                "signal": "HOLD",
+                "confidence": 55,
+                "risk": "MEDIUM",
+                "reasoning": [],
+                "risk_score": 48.25,
+                "risk_level": "MEDIUM"
+            },
+            {
+                "asset": "usd_index",
+                "signal": "BUY",
+                "confidence": 60,
+                "risk": "MEDIUM",
+                "reasoning": [],
+                "risk_score": 40.0,
+                "risk_level": "MEDIUM"
+            }
+        ],
+        "overall_confidence": 61,
+        "recommendation": "HOLD"
+    }
+}
