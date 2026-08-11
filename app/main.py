@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import api_router
 from app.dashboard.router import router as dashboard_router
@@ -20,6 +21,15 @@ app = FastAPI(
     description="AI Risk & Prediction Intelligence",
     version="1.4.0",
     lifespan=lifespan,
+)
+
+# اجازه می‌دهد داشبورد وب (که جدا از این سرور باز می‌شود، مثلاً
+# مستقیم از روی گوشی یا از یک آدرس دیگر) بتواند به API درخواست بزند.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
