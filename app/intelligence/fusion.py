@@ -68,7 +68,17 @@ def analyze_gold():
                 result["risks"],
 
             "engine":
-                result["engine"]
+                result["engine"],
+
+            # اعداد خام واقعی، برای نمایش در داشبورد
+            "metrics": {
+                "gold18_price": gold_data.get("gold18_price"),
+                "mesghal_price": gold_data.get("mesghal_price"),
+                "coin_emami": gold_data.get("coin_emami"),
+                "usd_free_rate": gold_data.get("usd_free_rate"),
+                "xau_usd": gold_data.get("xau_usd"),
+                "coin_bubble_percent": gold_data.get("coin_bubble_percent"),
+            }
 
         }
 
@@ -90,7 +100,9 @@ def analyze_gold():
 
             "confidence": 0,
 
-            "risk": "HIGH"
+            "risk": "HIGH",
+
+            "metrics": {}
 
         }
 
@@ -117,7 +129,9 @@ def analyze_asset(name, responses):
 
             "confidence": 0,
 
-            "risk": "HIGH"
+            "risk": "HIGH",
+
+            "metrics": {}
 
         }
 
@@ -293,7 +307,16 @@ def analyze_asset(name, responses):
 
             for r in responses
 
-        ]
+        ],
+
+        # اعداد خام واقعی، برای نمایش در داشبورد
+        "metrics": {
+            "price": price,
+            "change_pct": change,
+            "rsi14": technical.get("RSI14"),
+            "ema20": technical.get("EMA20"),
+            "ema50": technical.get("EMA50"),
+        }
 
     }
 

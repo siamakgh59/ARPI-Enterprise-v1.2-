@@ -74,7 +74,8 @@ def dashboard_summary():
             {
                 **reasoning_result,
                 "risk_score": risk_report.risk_score,
-                "risk_level": risk_report.risk_level.value
+                "risk_level": risk_report.risk_level.value,
+                "metrics": item.get("metrics", {})
             }
         )
 

@@ -193,6 +193,21 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
   .reasons li::before{ content:'—'; color:var(--gold-dim); flex-shrink:0; }
   .no-reason{ font-size:12px; color:var(--muted); font-style:italic; }
 
+  .metrics{
+    display:grid; grid-template-columns:1fr 1fr; gap:8px;
+    margin-top:12px; padding-top:12px; border-top:1px solid var(--border);
+  }
+  .metrics.no-border{ border-top:none; padding-top:0; margin-top:10px; }
+  .metric{
+    background:var(--surface-2); border-radius:8px; padding:8px 10px;
+  }
+  .metric .m-label{ font-size:10px; color:var(--muted); margin-bottom:3px; }
+  .metric .m-val{ font-size:13px; font-weight:600; font-family:'JetBrains Mono',monospace; }
+
+  .refresh-info{
+    text-align:center; font-size:10.5px; color:#4B5268; margin-top:14px;
+  }
+
   #empty, #err{
     text-align:center; padding:60px 20px; color:var(--muted); font-size:13px; line-height:2;
   }
@@ -263,12 +278,49 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 
   <div id="assets"></div>
 
+  <div class="refresh-info" id="refreshInfo"></div>
+
   <div class="footer-note">ARPI Enterprise · تحلیل خودکار — نه توصیه‌ی قطعی سرمایه‌گذاری</div>
 </main>
 
 <script>
 const RISK_FA = {LOW:'کم', MEDIUM:'متوسط', HIGH:'بالا', CRITICAL:'بحرانی'};
 const SIGNAL_FA = {BUY:'خرید', SELL:'فروش', HOLD:'نگه‌داری', WAIT:'صبر', NO_DATA:'بدون داده'};
+const METRIC_LABELS = {
+  gold18_price: 'طلای ۱۸ عیار (تومان)',
+  mesghal_price: 'مثقال (تومان)',
+  coin_emami: 'سکه امامی (تومان)',
+  usd_free_rate: 'دلار آزاد (تومان)',
+  xau_usd: 'طلای جهانی ($)',
+  coin_bubble_percent: 'حباب سکه (%)',
+  price: 'قیمت',
+  change_pct: 'تغییر روزانه (%)',
+  rsi14: 'RSI (۱۴)',
+  ema20: 'EMA20',
+  ema50: 'EMA50'
+};
+const REFRESH_SECONDS = 30;
+let refreshTimer = null;
+let countdown = REFRESH_SECONDS;
+
+function fmtNum(n){
+  if(n === null || n === undefined) return '—';
+  if(typeof n !== 'number') return n;
+  return n.toLocaleString('en-US', {maximumFractionDigits: 2});
+}
+
+function renderMetrics(metrics){
+  if(!metrics) return '';
+  const entries = Object.entries(metrics).filter(([k,v]) => v !== null && v !== undefined);
+  if(entries.length === 0) return '';
+  return `<div class="metrics">
+    ${entries.map(([k,v]) => `
+      <div class="metric">
+        <div class="m-label">${METRIC_LABELS[k] || k}</div>
+        <div class="m-val mono">${fmtNum(v)}</div>
+      </div>`).join('')}
+  </div>`;
+}
 
 function toggleSetup(){
   const el = document.getElementById('setup');
@@ -342,6 +394,7 @@ async function load(){
         const signal = a.signal || 'NO_DATA';
         const risk = a.risk_level || a.risk || 'MEDIUM';
         const reasons = a.reasoning || [];
+        const metricsHtml = renderMetrics(a.metrics);
         return `
         <div class="card" onclick="this.classList.toggle('open')">
           <div class="card-top">
@@ -355,6 +408,7 @@ async function load(){
             <div class="conf-num mono">${conf}%</div>
           </div>
           <span class="risk-tag risk-${risk}">ریسک: ${RISK_FA[risk] || risk}</span>
+          ${metricsHtml}
           <ul class="reasons">
             ${reasons.length ? reasons.map(r => `<li>${r}</li>`).join('') : '<li class="no-reason">دلیل خاصی ثبت نشده</li>'}
           </ul>
@@ -370,12 +424,37 @@ async function load(){
     err.textContent = 'اتصال به API برقرار نشد. آدرس را چک کن، یا مطمئن شو سرور (run_local.py) روشن است. جزئیات خطا: ' + e.message;
     document.getElementById('statusText').textContent = 'قطع';
   }
+
+  resetCountdown();
+}
+
+function resetCountdown(){
+  countdown = REFRESH_SECONDS;
+  updateRefreshLabel();
+}
+
+function updateRefreshLabel(){
+  const el = document.getElementById('refreshInfo');
+  if(el) el.textContent = `بروزرسانی خودکار در ${countdown} ثانیه`;
+}
+
+function startAutoRefresh(){
+  if(refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => {
+    countdown -= 1;
+    if(countdown <= 0){
+      load();
+    } else {
+      updateRefreshLabel();
+    }
+  }, 1000);
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('arpi_api_url');
   if(saved){ document.getElementById('apiUrl').value = saved; }
   load();
+  startAutoRefresh();
 });
 </script>
 </body>
