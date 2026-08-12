@@ -35,4 +35,3 @@ app.add_middleware(
 app.include_router(api_router)
 app.include_router(dashboard_router)
 app.include_router(ui_router)
-l
