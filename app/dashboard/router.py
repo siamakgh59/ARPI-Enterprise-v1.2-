@@ -1,3 +1,4 @@
+cat > app/dashboard/router.py << 'EOF'
 from fastapi import APIRouter
 from datetime import datetime
 
@@ -25,41 +26,20 @@ def dashboard_summary():
 
     data = market_live()
 
-    analysis = data.get(
-        "analysis",
-        {}
-    )
-
+    analysis = data.get("analysis", {})
 
     signals = []
-
     confidence_values = []
-
     risk_levels = []
-
 
     for asset, item in analysis.items():
 
-        confidence = item.get(
-            "confidence",
-            0
-        )
+        confidence = item.get("confidence", 0)
+        signal = item.get("signal")
 
-        signal = item.get(
-            "signal"
-        )
+        factors = market_to_risk_factors(item)
 
-
-        factors = market_to_risk_factors(
-            item
-        )
-
-
-        risk_report = risk_engine.analyze(
-            asset=asset,
-            factors=factors
-        )
-
+        risk_report = risk_engine.analyze(asset=asset, factors=factors)
 
         reasoning_result = generate_reasoning(
             asset,
@@ -68,7 +48,6 @@ def dashboard_summary():
             risk_report.risk_level.value,
             base_reasoning=item.get("reasoning", [])
         )
-
 
         signals.append(
             {
@@ -79,103 +58,68 @@ def dashboard_summary():
             }
         )
 
-
-        confidence_values.append(
-            confidence
-        )
-
-
-        risk_levels.append(
-            risk_report.risk_level.value
-        )
-
-
+        confidence_values.append(confidence)
+        risk_levels.append(risk_report.risk_level.value)
 
     avg_confidence = (
-
-        sum(confidence_values)
-        /
-        len(confidence_values)
-
-        if confidence_values
-
-        else 0
-
+        sum(confidence_values) / len(confidence_values)
+        if confidence_values else 0
     )
 
+    DIRECTION = {"BUY": 1, "SELL": -1}
+
+    weighted_sum = sum(
+        DIRECTION.get(s.get("signal"), 0) * s.get("confidence", 0)
+        for s in signals
+    )
+
+    total_confidence_weight = sum(
+        s.get("confidence", 0) for s in signals
+    ) or 1
+
+    net_score = weighted_sum / total_confidence_weight
+
+    if net_score > 0.15:
+        recommendation = "BUY"
+    elif net_score < -0.15:
+        recommendation = "SELL"
+    else:
+        recommendation = "HOLD"
 
     risk_summary = {
-
         "HIGH": risk_levels.count("HIGH"),
-
         "MEDIUM": risk_levels.count("MEDIUM"),
-
         "LOW": risk_levels.count("LOW"),
-
         "CRITICAL": risk_levels.count("CRITICAL")
-
     }
-
-
 
     return {
-
         "application": "ARPI Enterprise",
-
         "version": "1.4.0",
-
         "timestamp": datetime.utcnow().isoformat(),
-
-
         "dashboard_status": "ACTIVE",
-
-
         "arpi_score": {
-
             "value": round(avg_confidence),
-
             "status": "calculating"
-
         },
-
-
         "market": {
-
             "status": "LIVE",
-
             "engine": "ARPI Market Engine"
-
         },
-
-
         "risk_intelligence": {
-
             "engine": "RIE",
-
             "status": "ACTIVE",
-
             "risk_summary": risk_summary
-
         },
-
-
         "assets": {
-
             "total": len(signals),
-
             "analyzed": signals
-
         },
-
-
         "decision_summary": {
-
             "top_signals": signals[:5],
-
             "overall_confidence": round(avg_confidence),
-
-            "recommendation": "HOLD"
-
+            "recommendation": recommendation,
+            "net_score": round(net_score, 3)
         }
-
     }
+EOF
