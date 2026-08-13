@@ -1,4 +1,3 @@
-cat > app/dashboard/router.py << 'EOF'
 from fastapi import APIRouter
 from datetime import datetime
 
@@ -122,4 +121,3 @@ def dashboard_summary():
             "net_score": round(net_score, 3)
         }
     }
-EOF
