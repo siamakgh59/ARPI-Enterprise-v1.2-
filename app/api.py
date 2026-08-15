@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.market import market_router
 from app.engines.macro.router import macro_router
 from app.engines.gold.router import gold_router
+from app.engines.risk.router import risk_router
 
 
 api_router = APIRouter()
@@ -46,4 +47,10 @@ api_router.include_router(
 # Gold Intelligence Engine
 api_router.include_router(
     gold_router
+)
+
+
+# Risk Intelligence Engine
+api_router.include_router(
+    risk_router
 )

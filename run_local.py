@@ -17,6 +17,11 @@ import time
 import webbrowser
 
 import uvicorn
+from dotenv import load_dotenv
+
+# بارگذاری کلیدهای محیطی (مثل FRED_API_KEY) از فایل .env
+# باید قبل از import شدن app.main انجام شود
+load_dotenv()
 
 # وقتی با PyInstaller به exe تبدیل شده، مسیر فایل‌های بسته‌بندی‌شده
 # در sys._MEIPASS قرار دارد. باید به sys.path اضافه شود تا import app.* کار کند.
